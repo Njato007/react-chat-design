@@ -1,38 +1,15 @@
-.App {
-  text-align: center;
-}
+/* import the Mention dependency styles */
+/* @import "../node_modules/@syncfusion/ej2-base/styles/bootstrap5.css";
+@import "../node_modules/@syncfusion/ej2-react-dropdowns/styles/bootstrap5.css"; */
+/* @import url('https://cdn.syncfusion.com/ej2/20.3.56/bootstrap5.css'); */
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+div#inputMention[placeholder]:empty:before {
+    content: attr(placeholder);
+    color: #555;
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+div#inputMention_popup {
+    /* top: 0 !important;
+    bottom: 0 !important; */
+    position: absolute;
+    bottom: -10px !important;
 }
