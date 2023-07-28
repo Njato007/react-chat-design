@@ -1,13 +1,30 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+* {
+    font-family: 'Inter', sans-serif;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer base {
+    .message-item {
+        @apply max-w-[85%];
+    }
+    .message-sender {
+        @apply ml-auto text-sm rounded-xl rounded-tr py-2 px-3;
+    }
+    .message-receiver {
+        @apply mr-auto whitespace-pre-wrap text-sm rounded-xl rounded-tl py-2 px-3;
+    }
+    .context-menu-item {
+        @apply flex gap-2 items-center justify-start w-full hover:bg-indigo-200 px-3 py-1;
+    }
+    .snaps-inline {
+        scroll-snap-type: inline mandatory;
+        scroll-padding: 0.25rem;
+        grid-auto-columns: calc(100% / 4);
+    }
+    .snaps-inline--child > * {
+        scroll-snap-align: start;
+    }
 }
