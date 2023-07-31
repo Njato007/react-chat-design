@@ -32,46 +32,87 @@ export const useReactionAxes = (x, y) => {
     }, [x, y]);
 }
 
+// Function to scroll to the bottom of the container
+export const scrollToBottom = (containerRef) => {
+  if (containerRef.current) {
+    containerRef.current.scrollTop = containerRef.current.scrollHeight ;
+    console.log('is scrolling to bottom')
+  }
+};
+
+export const groupByDate = (data) => {
+  // this gives an object with dates as keys
+  const groups = data.reduce((groups, message) => {
+    const time = message.createdAt.toISOString()
+    const date = time.split('T')[0];
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(message);
+    return groups;
+  }, {});
+  
+  // Edit: to add it in the array format instead
+  const groupArrays = Object.keys(groups).map((date) => {
+    return {
+      date,
+      messages: groups[date]
+    };
+  });
+
+  return groupArrays;
+}
+
+
 export const MessagesData = [
     {
       user: "receiver",
       message: "This message is from the receiver\nThanks",
-      reactions: []
+      reactions: [],
+      createdAt: new Date('2023-07-28')
     },
     {
       user: "receiver",
       message: " It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n\nThanks",
       reactions: [
         {user: 'sender', emoji: '1f44d'},
-      ]
+      ],
+      createdAt: new Date('2023-07-28')
     },
     {
       user: "receiver",
       message: " It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n\nThanks",
-      reactions: []
+      reactions: [],
+      createdAt: new Date('2023-07-29')
     },
     {
+      id: "m_01",
       user: "sender",
       message: "This message is from the sender ",
-      reactions: []
+      reactions: [],
+      createdAt: new Date('2023-07-29')
     },
     {
       user: "receiver",
       message: "This message is from the receiver\nThanks",
-      reactions: []
+      reactions: [],
+      createdAt: new Date('2023-07-30')
     },
     {
       id: 'm_OO',
-      user: "sender",
+      user: "receiver",
       message: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.\nLorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
       reactions: [
         {user: 'sender', emoji: '2764-fe0f'},
-      ]
+      ],
+      replyId: "m_01",
+      createdAt: new Date('2023-07-30')
     },
     {
       user: "receiver",
       message: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.\nLorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
-      reactions: []
+      reactions: [],
+      createdAt: new Date('2023-07-30')
     },
     {
       user: "sender",
@@ -79,6 +120,7 @@ export const MessagesData = [
       reactions: [
         {user: 'sender', emoji: '1f44d'},
       ],
-      reply: "m_OO"
+      replyId: "m_OO",
+      createdAt: new Date('2023-07-31')
     }
 ];

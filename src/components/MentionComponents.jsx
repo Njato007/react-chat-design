@@ -1,13 +1,14 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react'
 import { MentionsInput, Mention } from 'react-mentions'
-import { MentionInputStyle, MentionPStyle } from '../mention-defaultStyle';
-import { BsChevronBarLeft, BsChevronLeft, BsChevronRight, BsEmojiSmile, BsThreeDotsVertical } from 'react-icons/bs';
+import { MentionInputStyle, MentionPReplyStyle, MentionPStyle } from '../mention-defaultStyle';
+import { BsChevronLeft, BsChevronRight, BsEmojiSmile, BsReply, BsThreeDotsVertical } from 'react-icons/bs';
 import { motion } from 'framer-motion';
 import { ContextMenu } from './MessageItem';
 import { Emoji } from 'emoji-picker-react';
 import { useClickAway } from '@uidotdev/usehooks';
 import { useResizeObserver } from '../utils/resizeObserver';
 import { useAxesStyle, useReactionAxes } from '../utils/tools';
+import moment from '../utils/moment.cust';
 const initialContextMenu = {
     show: false,
     x: 0,
@@ -22,12 +23,20 @@ const suggestions = [
     { id: '3', display: "Hello" },
 ];
 
-export const MentionInput = forwardRef(({ onChange, defaultValue, ...props }, ref) => {
+export const MentionInput = forwardRef(({ onChange, onSubmit, defaultValue, ...props }, ref) => {
     const [value, setValue] = useState('');
 
     const handleChange = (value) => {
         setValue(value);
         onChange(value)
+    }
+
+    const handleKeyDown = (event) => {
+        if (event.keyCode == 13 && !event.shiftKey) {
+            event.preventDefault();
+            onSubmit(); //Submit your form here
+            return false;
+        }
     }
 
     useEffect(() => {
@@ -44,6 +53,7 @@ export const MentionInput = forwardRef(({ onChange, defaultValue, ...props }, re
             onChange={(e) => handleChange(e.target.value)}
             className='w-full bg-transparent text-slate-900 text-sm'
             allowSuggestionsAboveCursor
+            onKeyDown={handleKeyDown}
             {...props}
         >
             <Mention
@@ -59,32 +69,128 @@ export const MentionInput = forwardRef(({ onChange, defaultValue, ...props }, re
     )
 });
 
-export const MessageSender = ({ message, onReply }) => {
+export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
 
+    const [contextMenu, setContextMenu] = useState(initialContextMenu);
+    const [reactionWidth, setReactionWidth] = useState(0);
+    const handleContextMenu = (event) => {
+        event.preventDefault();
+        const { pageX, pageY } = event;
+        setContextMenu({ show: true, x: pageX, y: pageY });
+    }
+    const reaction_Ref = useRef();
+    const messageP_Ref = useResizeObserver((cr, rest) => {
+        if (reaction_Ref.current) {
+            setReactionWidth(cr.width + 24);
+        }
+    });
+
+    // reply message
     const handleReply = () => {
+        onReply(message);
+    }
+    // transfert message
+    const handleTransfert = () => {
+        alert('transfering message')
+    }
+    // copy message
+    const handleCopy = () => {
+        navigator.clipboard.writeText(message.message);
+    }
+    // close context menu
+    const handleCloseContextMenu = () => setContextMenu(initialContextMenu);
 
+    // delete message
+    const handleDelete = () => {
+        onDelete(message);
     }
 
+    // update message
+    const handleUpdate = () => {
+        onUpdate(message);
+    }
+
+    
+
     return (
-        <div className="flex self-end message-item ml-auto">
-            <div className='message-sender text-white bg-gradient-to-r from-emerald-500 to-emerald-600 py-2 px-3'>
-                <MentionsInput
-                    style={MentionPStyle}
-                    placeholder='Tapez un message'
-                    value={message.message}
-                    readOnly
-                    className='w-full bg-transparent'
+        <div id={message.id} className="flex self-end message-item ml-auto">
+            <div className="w-fit">
+                <div className="text-xs w-full flex text-slate-600">
+                    <span className='ml-auto'>{moment(message.createdAt).format('LT')}</span>
+                </div>
+                <motion.div
+                    initial={{ scale: 0, x: 10 }}
+                    animate={{ scale: 1, x: 0 }}
+                    className={`message-sender flex flex-col text-white bg-gradient-to-r from-emerald-500 to-emerald-600 py-2 px-3 ${message.reactions.length > 0 && 'pb-4'}`}
+                    onContextMenu={handleContextMenu}
+                    ref={messageP_Ref}
                 >
-                    <Mention
-                        className='text-white '
-                        displayTransform={(id, display) => `@${display}`}
-                    />
-                </MentionsInput>
+                    {
+                        message.replyId &&
+                        <a href={`#${message.reply.id}`} className="flex flex-col gap-1 border-b border-white pb-2 mb-2">
+                            <div className="flex flex-col items-start cursor-pointer">
+                                <BsReply className='w-5 h-5 text-white'/>
+                                <div className="pl-4">
+                                    <MessagePReply text={message.reply.message} mentionCN={'text-white'} />
+                                </div>
+                            </div>
+                            <div className="pl-4">
+                                {message.reply.user}, 20/07/23
+                            </div>
+                        </a>
+                    }
+                    <MentionsInput
+                        style={MentionPStyle}
+                        value={message.message}
+                        readOnly
+                        className='w-full bg-transparent'
+                    >
+                        <Mention
+                            className='text-white '
+                            displayTransform={(id, display) => `@${display}`}
+                        />
+                    </MentionsInput>
+                </motion.div>
+
+                {/* ReactionEmoji lists in this message */}
+                <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
+                    className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-50`}>
+                    <ReactionEmojiList reactions={message.reactions} />
+                </div>
             </div>
-            <button type='button' className='h-fit pl-1 rounded'>
+            <button type='button' className='h-fit pl-1 rounded' onClick={handleContextMenu}>
                 <BsThreeDotsVertical className='text-slate-500' />
             </button>
+            { contextMenu.show &&
+                <ContextMenu
+                    variant="sender"
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    closeContextMenu={handleCloseContextMenu}
+                    onReply={handleReply}
+                    onCopy={handleCopy}
+                    onTransfert={handleTransfert}
+                    onDelete={handleDelete}
+                    OnUpdate={handleUpdate}
+                />
+            }
         </div>
+    )
+}
+
+const MessagePReply  = ({ text, mentionCN }) => {
+    return (
+        <MentionsInput
+            style={MentionPReplyStyle}
+            value={text}
+            readOnly
+            className='w-full bg-transparent'
+        >
+            <Mention
+                className={mentionCN}
+                displayTransform={(id, display) => `@${display}`}
+            />
+        </MentionsInput>
     )
 }
 
@@ -142,7 +248,6 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
         navigator.clipboard.writeText(msg.message);
     }
 
-
     useEffect(() => {
         setReactor(message.reactions.find(e => e.user === 'sender'));
         setMsg(message);
@@ -152,17 +257,38 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
 
 
     return (
-        <div className="flex items-start self-start gap-2 message-item mr-auto">
+        <div id={message.id} className="flex items-start self-start gap-2 message-item mr-auto">
             <div className="rounded-full flex items-center justify-center font-bold text-emerald-500 bg-slate-100 ring-2 ring-gray-200 min-h-[40px] min-w-[40px]">
                 JD
             </div>
             <div className='w-fit'>
-                <div className={`message-receiver text-black bg-gray-200 py-2 px-3 relative ${emojis.length > 0 && 'pb-4'}`}
+                <div className="text-xs w-full flex text-slate-600">
+                    <span className='mr-auto'>{moment(message.createdAt).format('LT')}</span>
+                </div>
+                <motion.div
+                    initial={{ scale: 0, x: -10 }}
+                    animate={{ scale: 1, x: 0 }}
+                    className={`message-receiver flex-col text-black bg-gray-200 py-2 px-3 relative ${emojis.length > 0 && 'pb-4'}`}
                     onMouseEnter={() => setIsMouseEntered(true)}
                     onMouseLeave={() => setIsMouseEntered(false)}
                     onContextMenu={handleContextMenu}
                     ref={messageP_Ref}
                 >
+                    {/* Replied message */}
+                    {
+                        message.replyId &&
+                        <a href={`#${message.reply.id}`} className="flex flex-col gap-1 border-b border-slate-800 pb-2 mb-2">
+                            <div className="flex flex-col items-start cursor-pointer">
+                                <BsReply className='w-5 h-5 text-black'/>
+                                <div className="pl-4">
+                                    <MessagePReply text={message.reply.message} mentionCN={'text-black'} />
+                                </div>
+                            </div>
+                            <div className="pl-4">
+                                {message.reply.user}, 20/07/23
+                            </div>
+                        </a>
+                    }
                     <MentionsInput
                         style={MentionPStyle}
                         placeholder='Tapez un message'
@@ -183,7 +309,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
                     }}>
                         <EmojiSelector reactor={reactor} onClick={handleClickReaction} />
                     </motion.div>
-                </div>
+                </motion.div>
 
                 {/* ReactionEmoji lists in this message */}
                 <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}

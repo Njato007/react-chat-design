@@ -1,26 +1,74 @@
 import { BsChevronDown, BsFillSendFill, BsEmojiSmile, BsReply } from 'react-icons/bs';
+import { MdCancel } from 'react-icons/md'
+import { VscFiles } from 'react-icons/vsc'
 import {RxCross2} from 'react-icons/rx'
 import { useEffect, useRef, useState } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { motion } from 'framer-motion';
 import { MessageSender, MentionInput, MessageReceiver } from './components/MentionComponents';
-import { MessagesData } from './utils/tools';
+import { MessagesData, groupByDate, scrollToBottom } from './utils/tools';
 import {v1} from 'uuid'
+import moment from './utils/moment.cust';
 
 function App() {
-  const [message, setMessage] = useState('@[Tous le monde](1) Bonjour');
-  const [messages, setMessages] = useState(MessagesData.map(item => item.id ? item : ({...item, id: v1()})));
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [messagesDisplay, setMessagesDisplay] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
-  const [isReplying, setIsReplying] = useState({
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const initialState = {
     state: false,
     data: {}
-  });
+  }
+  // state for replying
+  const [isReplying, setIsReplying] = useState(initialState);
+  // state for updating
+  const [isUpdating, setIsUpdating] = useState(initialState);
 
   const messageInputRef = useRef();
+  const containerRef = useRef(null);
 
   const handleSendMessage = () => {
-    setMessages([...messages, { user: "sender", message }]);
+    // reply message
+    if (isReplying.state) {
+      setMessages([...messages, {
+        id: v1(),
+        user: "sender",
+        message: message,
+        replyId: isReplying.data.id,
+        reply: messages.find(m => m.id === isReplying.data.id),
+        reactions: [],
+        createdAt: new Date()
+      }]);
+      // cancel reply
+      handleCancelReply();
+    }
+    // updating message
+    else if (isUpdating.state) {
+      const messageId = isUpdating.data.id;
+      console.log(messageId)
+      setMessages(prev => prev.map(mess =>
+        mess.id === messageId ?
+        {...mess, message: message } : mess
+      ));
+      setIsUpdating(initialState);
+    }
+    // send simple message
+    else { 
+      setMessages([...messages, {
+        id: v1(),
+        user: "sender",
+        message: message,
+        reactions: [],
+        createdAt: new Date()
+      }]);
+    }
     setMessage('');
+    setShowEmoji(false);
+    // scroll to bottom to see sent message
+    setTimeout(() => {
+      scrollToBottom(containerRef);
+    }, 10)
   }
 
   // Message reaction handler
@@ -32,7 +80,6 @@ function App() {
         // get reaction
         const reactions = [...message.reactions];
         const senderReaction = reactions.find(r => r.user === 'sender');
-        console.log(senderReaction, isRemoving)
         // the sender reaction exists
         if (senderReaction) {
           if (isRemoving)
@@ -62,10 +109,12 @@ function App() {
         state: true,
         data: message
       });
+      setIsUpdating(initialState);
 
       if (messageInputRef.current)
         messageInputRef.current.containerElement.querySelector('textarea').focus()
   }
+
   // handle cancel reply message
   const handleCancelReply = () => {
       setIsReplying({
@@ -74,40 +123,101 @@ function App() {
       });
   }
 
-  const containerRef = useRef(null)
+  // handle pick emoji
+  const handlePickEmoji = (selectedEmoji) => {
+    const ref = messageInputRef.current.containerElement.querySelector('textarea');
+    if (!ref) return;
+    ref.focus();
+    setMessage(prev => prev + selectedEmoji.emoji)
+  }
+
+  // delete message 
+  const handleDeleteMessage = (msg) => {
+    setMessages(prev => prev.filter(m => m.id !== msg.id));
+  }
+
+  // update message
+  const handleUpdateMessage = (msg) => {
+    // cancel reply while updating
+    setIsReplying(initialState);
+    setIsUpdating({ state: true, data: msg });
+    // setMessage
+    setMessage(msg.message);
+  }
+
+  const handleCancelUpdate = () => {
+    setIsUpdating(initialState);
+    setMessage('');
+  }
 
   useEffect(() => {
-    // Function to scroll to the bottom of the container
-    const scrollToBottom = () => {
-      if (containerRef.current) {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      }
-    };
+    // scroll to bottom to see sent message
+    setTimeout(() => {
+      scrollToBottom(containerRef);
+    }, 10);
 
-    // Call the scroll function after each render to handle updates
-    scrollToBottom();
+    // give id to each message
+    const messagesWithId = MessagesData.map(item => {
+      if (item.replyId) {
+        item.reply = MessagesData.find(m => m.id === item.replyId);
+      }
+      return item.id ? item : ({...item, id: v1()})
+    });
+    // group message by Id
+    setMessages(messagesWithId);
   }, [containerRef])
+
+  // after adding emoji
+  useEffect(() => {
+    messageInputRef.current.containerElement.querySelector('textarea').selectionEnd = cursorPosition;
+  }, [cursorPosition]);
+
+  // message display hook
+  useEffect(() => {
+    setMessagesDisplay(groupByDate(messages));
+  }, [messages]);
+
 
   return (
     <div className="flex h-screen flex-col bg-gray-100">
         <div className="bg-gradient-to-r from-green-500 to-emerald-500 py-4">
           <h1 className="text-center text-2xl font-bold text-white">Custom chat - Noob</h1>
         </div>
-        <div className="flex flex-grow overflow-y-auto bg-white" ref={containerRef}>
+        <div className="flex flex-grow overflow-y-auto bg-white scroll-smooth" ref={containerRef}>
           <div className="flex flex-col space-y-2 p-4 w-full mt-auto">
             {/* <!-- Individual chat message --> */}
             {
-                messages.map((item, i) => (
-                  item.user === "sender" ? 
-                  <MessageSender message={item} key={i} />
-                  :
-                  <MessageReceiver message={item} onReact={handleReaction} onReply={handleReplyMessage} key={i} />
-              ))
+                messagesDisplay.map((item, index) => {
+                  return (
+                    <>
+                    <fieldset className='border-t border-slate-200 my-5' key={index}>
+                      <legend className='text-center text-xs px-3 text-slate-500'>{moment(new Date(item.date)).calendar()}</legend>
+                    </fieldset>
+                    {
+                      item.messages.map((message, i) => (
+                        message.user === "sender" ? 
+                        <MessageSender message={message}
+                          onDelete={handleDeleteMessage}
+                          onReply={handleReplyMessage}
+                          onUpdate={handleUpdateMessage}
+                          key={message.id}
+                        />
+                        : 
+                        <MessageReceiver message={message}
+                          onReact={handleReaction}
+                          onReply={handleReplyMessage}
+                          key={message.id}
+                        />
+                      ))
+                    }
+                    </>
+                  )
+                })
             }
           </div>
         </div>
-        <div className='flex flex-col w-full p-3'>
-          <div className={`bg-white text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 px-1 py-1 relative`}>
+        <div className='flex w-full p-3 gap-2'>
+          <div className={`bg-white flex-grow text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 px-2 py-1 relative`}>
             {/* Emoji fields */}
             <motion.div className='w-full overflow-hidden hidden' animate={{
               display: showEmoji ? 'block' : 'none',
@@ -120,7 +230,7 @@ function App() {
                 previewConfig={{
                   showPreview: false,
                 }}
-                onEmojiClick={console.log}
+                onEmojiClick={handlePickEmoji}
               />
             </motion.div>
 
@@ -152,15 +262,27 @@ function App() {
                 { !showEmoji ? <BsEmojiSmile className='h-5 w-5'/> : <BsChevronDown className='h-5 w-5'/> }
               </button>
               {/* <TextInput mentionData={mentionData} /> */}
-              <MentionInput ref={messageInputRef} onChange={setMessage} defaultValue={message} />
+              <MentionInput ref={messageInputRef} onSubmit={handleSendMessage} onChange={setMessage} defaultValue={message} />
+              {
+                isUpdating.state &&
+                <button key={1} className="rounded-full text-rose-400 hover:bg-gray-300 hover:text-rose-500 p-2" onClick={handleCancelUpdate} >
+                  <MdCancel className='h-5 w-5' />
+                </button>
+              }
               {
                 // message.trim().length > 0 &&
-                <button className="rounded-full text-emerald-800 hover:bg-gray-300 hover:text-emerald-500 p-2" onClick={handleSendMessage} >
+                <button disabled={message.trim().length === 0}
+                  className="rounded-full text-emerald-800 hover:bg-gray-300 hover:text-emerald-500 p-2 disabled:cursor-not-allowed"
+                  onClick={handleSendMessage} >
                   <BsFillSendFill className='h-5 w-5' />
                 </button>
               }
             </div>
           </div>
+          <button key={2} className="flex-shrink-0 flex-grow-0 rounded-lg text-emerald-800 hover:bg-gray-300 hover:text-emerald-500 p-2"
+          >
+            <VscFiles className='h-5 w-5' />
+          </button>
         </div>
     </div>
   );
