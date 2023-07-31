@@ -35,6 +35,7 @@ export const MentionInputStyle = {
       },
     },
 }
+
 export const MentionPStyle = {
   control: {
     backgroundColor: 'transparent',
@@ -53,7 +54,31 @@ export const MentionPStyle = {
     input: {
       padding: 0,
       border: '1px solid transparent',
-      outline: 'none'
+      outline: 'none',
+    },
+  }
+}
+
+export const MentionPReplyStyle = {
+  control: {
+    backgroundColor: 'transparent',
+    fontWeight: 'normal',
+  },
+
+  '&multiLine': {
+    control: {
+      minHeight: 0,
+    },
+    highlighter: {
+      padding: 0,
+      border: '1px solid transparent',
+    },
+    input: {
+      padding: 0,
+      border: '1px solid transparent',
+      outline: 'none',
+      fontStyle: 'italic',
+      cursor: 'pointer'
     },
   }
 }
