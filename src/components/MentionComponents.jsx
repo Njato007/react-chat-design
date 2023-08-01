@@ -14,7 +14,6 @@ const initialContextMenu = {
     x: 0,
     y: 0
 }
-
 const emojis = ["1f44d", "2764-fe0f", "1f601", "1f602", "1f60b", "2714-fe0f", "1f44c", "1f612", "1f622", "1f60d", "1f497", "1f631"];
 
 const suggestions = [
@@ -22,6 +21,7 @@ const suggestions = [
     { id: '2', display: "Njato Tiana" },
     { id: '3', display: "Hello" },
 ];
+const urUser = 'sender'
 
 export const MentionInput = forwardRef(({ onChange, onSubmit, defaultValue, ...props }, ref) => {
     const [value, setValue] = useState('');
@@ -155,7 +155,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
                 {/* ReactionEmoji lists in this message */}
                 <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
                     className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-50`}>
-                    <ReactionEmojiList reactions={message.reactions} />
+                    <ReactionEmojiList reactions={message.reactions} onClickReaction={() => ''}/>
                 </div>
             </div>
             <button type='button' className='h-fit pl-1 rounded' onClick={handleContextMenu}>
@@ -219,7 +219,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
         onReact({
             messageId: message.id,
             reaction: {
-                user: 'sender',
+                user: urUser,
                 emoji: code,
             },
             isRemoving: isRemoving
@@ -249,7 +249,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
     }
 
     useEffect(() => {
-        setReactor(message.reactions.find(e => e.user === 'sender'));
+        setReactor(message.reactions.find(e => e.user === urUser));
         setMsg(message);
     }, [message])
 
@@ -314,7 +314,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
                 {/* ReactionEmoji lists in this message */}
                 <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
                     className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-50`}>
-                    <ReactionEmojiList reactions={msg.reactions} />
+                    <ReactionEmojiList reactions={msg.reactions} onClickReaction={handleClickReaction} />
                 </div>
             </div>
 
@@ -341,7 +341,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
 }
 
 // List of users reactions
-export const ReactionEmojiList = ({reactions}) => {
+export const ReactionEmojiList = ({reactions, onClickReaction}) => {
 
     const [dummyReactions, setdummyReactions] = useState([]);
 
@@ -363,25 +363,33 @@ export const ReactionEmojiList = ({reactions}) => {
     return (
         <div className='w-full flex items-center px-2 flex-wrap gap-1'>
         { dummyReactions.map(reaction =>
-            <ReactionItem key={reaction.emoji} emoji={reaction.emoji} reactors={reaction.reactors} />
+            <ReactionItem key={reaction.emoji} emoji={reaction.emoji} reactors={reaction.reactors} onClick={onClickReaction}/>
         )}
         </div>
     )
 }
 
-const ReactionItem = ({ emoji, reactors }) => {
+const ReactionItem = ({ emoji, reactors, onClick }) => {
     const [axes, setAxes] = useState({x: 0, y: 0});
     const axesStyle = useReactionAxes(axes.x, axes.y);
     const [show, setShow] = useState(false);
 
     const fieldRef = useClickAway(() => setShow(false));
 
-    const handleClick = (event) => {
+    const handleClick = () => {
+        onClick({ code: emoji, isRemoving: reactors.some(r => r.user === urUser) })
+    }
+    // hover on element
+    const handleMouseEnter = (event) => {
         const {pageX, pageY} = event;
         if (fieldRef.current) {
             setAxes(prev => ({...prev, y: pageY }));
             setShow(true);
         }
+    }
+    // mouse leave
+    const handleMouseLeave = (event) => {
+        setShow(false);
     }
 
     return (
@@ -389,8 +397,10 @@ const ReactionItem = ({ emoji, reactors }) => {
             animate={{
                 scale: [0, 1],
             }}
-            className='p-1 rounded-3xl bg-white border border-slate-200 flex gap-0 items-center relative'
+            className='p-1 rounded-3xl bg-white border border-slate-200 flex gap-0 items-center relative cursor-pointer'
             onClick={handleClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
         >
             <Emoji unified={emoji} emojiStyle='google' size={24}/>
             {

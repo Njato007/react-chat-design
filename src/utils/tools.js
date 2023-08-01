@@ -63,6 +63,12 @@ export const groupByDate = (data) => {
   return groupArrays;
 }
 
+export const isFileSizeGreaterThan5MB = (file) => {
+  const fiveMBInBytes = 5 * 1024 * 1024; // 5 MB in bytes
+
+  return file.size > fiveMBInBytes;
+}
+
 
 export const MessagesData = [
     {
@@ -122,5 +128,68 @@ export const MessagesData = [
       ],
       replyId: "m_OO",
       createdAt: new Date('2023-07-31')
+    },
+    
+    {
+      user: "receiver",
+      message: "This message is from the receiver\nThanks",
+      reactions: [],
+      createdAt: new Date('2023-07-28')
+    },
+    {
+      user: "receiver",
+      message: " It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n\nThanks",
+      reactions: [
+        {user: 'sender', emoji: '1f44d'},
+      ],
+      createdAt: new Date('2023-07-28')
+    },
+    {
+      user: "receiver",
+      message: " It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n\nThanks",
+      reactions: [],
+      createdAt: new Date('2023-07-29')
+    },
+    {
+      user: "sender",
+      message: "This message is from the sender ",
+      reactions: [],
+      createdAt: new Date('2023-07-29')
+    },
+    {
+      user: "receiver",
+      message: "This message is from the receiver\nThanks",
+      reactions: [],
+      createdAt: new Date('2023-07-30')
+    },
+    {
+      user: "receiver",
+      message: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.\nLorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
+      reactions: [
+        {user: 'senders', emoji: '2764-fe0f'},
+        {user: 'sendersx', emoji: '2764-fe0f'},
+      ],
+      replyId: "m_01",
+      createdAt: new Date('2023-07-30')
+    },
+    {
+      user: "receiver",
+      message: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.\nLorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.",
+      reactions: [],
+      createdAt: new Date('2023-07-30')
+    },
+    {
+      user: "sender",
+      message: "It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n\nThanks",
+      reactions: [
+        {user: 'senders', emoji: '1f44d'},
+      ],
+      createdAt: new Date('2023-07-31')
+    },
+    {
+      user: "receiver",
+      message: "It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n\nThanks",
+      reactions: [],
+      createdAt: new Date()
     }
 ];
