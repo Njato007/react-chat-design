@@ -27,4 +27,7 @@
     .snaps-inline--child > * {
         scroll-snap-align: start;
     }
+    .msg-container {
+        /* contain: ; */
+    }
 }
