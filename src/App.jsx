@@ -3,25 +3,23 @@ import { MdCancel } from 'react-icons/md'
 import { VscFiles } from 'react-icons/vsc'
 import { RxCross2 } from 'react-icons/rx'
 import { IoMdRefreshCircle } from 'react-icons/io'
-import { HiOutlineChevronDown } from 'react-icons/hi'
 import { useEffect, useRef, useState } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { MessageSender, MentionInput, MessageReceiver } from './components/MentionComponents';
-import { MessagesData, groupByDate, isFileSizeGreaterThan5MB, scrollToBottom } from './utils/tools';
+import { RandomMessages, groupByDate, isFileSizeGreaterThan5MB, useOnScreen } from './utils/tools';
 import { v1 } from 'uuid'
 import moment from './utils/moment.cust';
 import FilesList from './components/FilesList';
+import ScrollContainer from './components/ui/ScrollContainer';
+import { InView } from 'react-intersection-observer'
 
 function App() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const [messagesDisplay, setMessagesDisplay] = useState([]);
+  const displayChats = groupByDate(messages);
   const [isGettingOldMessage, setIsGettingOldMessage] = useState(false);
-  const [isScrolling, setIsScrolling] = useState({
-    state: false,
-    position: { top: 0 }
-  });
+  const [lastPreviousMessage, setLastPreviousMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const initialState = {
@@ -35,8 +33,10 @@ function App() {
   // uploaded files
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
+  //trigger hooks
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+
   const messageInputRef = useRef();
-  const containerRef = useRef(null);
   const uploaderRef = useRef(null);
 
   const handleSendMessage = () => {
@@ -76,10 +76,8 @@ function App() {
     }
     setMessage('');
     setShowEmoji(false);
-    // scroll to bottom to see sent message
-    setTimeout(() => {
-      scrollToBottom(containerRef);
-    }, 10)
+    // trigger to scroll to bottom
+    setHasNewMessage(!hasNewMessage);
   }
 
   // Message reaction handler
@@ -147,6 +145,21 @@ function App() {
     setMessages(prev => prev.filter(m => m.id !== msg.id));
   }
 
+  // unread message 
+  const handleUnreadMessageFromHere = (msg) => {
+    setMessages(prev => prev.map(
+      m => ({...m, hasRead: m.id !== msg.id})
+    ));
+  }
+  // read message
+  const handleReadMessage = (messagesId) => {
+    console.log(messagesId)
+    messagesId.forEach(id => {
+      
+    })
+    
+  }
+
   // update message
   const handleUpdateMessage = (msg) => {
     // cancel reply while updating
@@ -201,50 +214,27 @@ function App() {
     }
   };
 
+  const [d, setD] = useState(1);
   // get old message
   const getOldMessage = (e) => {
-    let element = e.target;
-    if (element.scrollTop === 0) {
-      setIsGettingOldMessage(true)
-      setTimeout(() => {
-        setIsGettingOldMessage(false)
-      }, 3000);
-      console.log('get old message')
-    }
-    // show scroll to bottom button
-    const sh = Math.floor(element.scrollTop + element.clientHeight * 2);
-    setIsScrolling(prev => ({
-      ...prev, state: sh < element.scrollHeight
-    }));
+    // setIsGettingOldMessage(true)
+
+    const newMessages = RandomMessages(d);
+    // setLastPreviousMessage(messages[0].id);
+    setMessages(prev => [...prev, ...newMessages]);
+    setIsGettingOldMessage(false);
+    setD(prev => prev + 1)
   }
 
+  // hooks to fetch message at first render
   useEffect(() => {
-    // scroll to bottom to see sent message
-    setTimeout(() => {
-      scrollToBottom(containerRef);
-    }, 10);
-
-    // give id to each message
-    const messagesWithId = MessagesData.map(item => {
-      if (item.replyId) {
-        item.reply = MessagesData.find(m => m.id === item.replyId);
-      }
-      return item.id ? item : ({ ...item, id: v1() })
-    });
-    // group message by Id
-    setMessages(messagesWithId);
-  }, [containerRef])
+    setMessages(RandomMessages(0));
+  }, [])
 
   // after adding emoji
   useEffect(() => {
     messageInputRef.current.containerElement.querySelector('textarea').selectionEnd = cursorPosition;
   }, [cursorPosition]);
-
-  // message display hook
-  useEffect(() => {
-    setMessagesDisplay(groupByDate(messages));
-  }, [messages]);
-
 
   return (
     <div className="flex h-screen flex-col bg-gray-100"
@@ -255,8 +245,11 @@ function App() {
       <div className="bg-gradient-to-r from-green-500 to-emerald-500 py-4">
         <h1 className="text-center text-2xl font-bold text-white">Custom chat - Noob</h1>
       </div>
-      <div className={`flex flex-grow overflow-y-auto ${dragActive ? 'bg-yellow-100' : 'bg-white'} scroll-smooth relative msg-container`} ref={containerRef}
-        onScroll={getOldMessage}
+      <ScrollContainer
+        dragActive={false}
+        haveNewMessage={hasNewMessage}
+        onScrollTop={getOldMessage}
+        onReadMessage={handleReadMessage}
       >
         {
           isGettingOldMessage &&
@@ -266,51 +259,58 @@ function App() {
             </div>
           </div>
         }
-        <div className="flex flex-col space-y-2 p-4 w-full mt-auto">
-          {/* <!-- Individual chat message --> */}
-          {
-            messagesDisplay.map((item, index) => {
-              return (
-                <>
-                  <fieldset className='border-t border-slate-200 my-5' key={index}>
-                    <legend className='text-center text-xs px-3 text-slate-500'>{moment(new Date(item.date)).calendar()}</legend>
-                  </fieldset>
+        {/* <!-- Individual chat message --> */}
+        {
+          displayChats.map((item, index) => {
+            return (
+              <motion.div key={index}
+                className='flex flex-col opacity-0 duration-500'
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <fieldset className='border-t border-slate-200 my-5'>
+                  <legend className='text-center text-xs px-3 text-slate-500'>{moment(new Date(item.date)).calendar()}</legend>
+                </fieldset>
+                <div className="w-full flex flex-col">
                   {
-                    item.messages.map((message, i) => (
-                      message.user === "sender" ?
-                        <MessageSender message={message}
-                          onDelete={handleDeleteMessage}
-                          onReply={handleReplyMessage}
-                          onUpdate={handleUpdateMessage}
-                          key={message.id}
-                        />
-                        :
-                        <MessageReceiver message={message}
-                          onReact={handleReaction}
-                          onReply={handleReplyMessage}
-                          key={message.id}
-                        />
+                    item.messages.map((msg, i) => (
+                      <div className="w-full flex flex-col" key={`message-${msg.id}-${i}`}>
+                        {msg.user === "sender" ?
+                          <MessageSender message={msg}
+                            onDelete={handleDeleteMessage}
+                            onReply={handleReplyMessage}
+                            onUpdate={handleUpdateMessage}
+                          />
+                          :
+                          <>
+                            {/* Display not seen indicator */}
+                            { !msg.hasRead && 
+                              <fieldset className='border-t-2 border-emerald-400 my-4'>
+                                <legend className='text-center text-xs px-3 text-emerald-400 font-semibold'>Nouveau message</legend>
+                              </fieldset>
+                            }
+                            <MessageReceiver message={msg}
+                              onReact={handleReaction}
+                              onReply={handleReplyMessage}
+                              onUnread={handleUnreadMessageFromHere}
+                            />
+                          </>
+                        }
+                      </div>
                     ))
                   }
-                </>
-              )
-            })
-          }
-        </div>
-      </div>
-      <div className='flex items-center w-full p-3 gap-2 relative'>
-        {/* Go to bottom button */}
-        {
-          isScrolling.state &&
-          <div className="absolute right-6 -top-16">
-            <button className="relative p-2 w-fit h-fit bg-slate-200 rounded-full cursor-pointer shadow"
-              onClick={() => scrollToBottom(containerRef)}
-            >
-              <span className="text-xs rounded-full px-1 absolute -right-1 -top-1 text-white bg-emerald-600 h-fit w-fit">2</span>
-              <HiOutlineChevronDown className='w-6 h-6 text-slate-700' />
-            </button>
-          </div>
+                </div>
+              </motion.div>
+            )
+          })
         }
+        {/* User profile */}
+        <div className='w-full'>
+          Utilisateur
+        </div>
+      </ScrollContainer>
+
+      <div className='flex items-center w-full p-3 gap-2 relative'>
         <div className={`bg-white flex-grow text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 px-2 py-1 relative`}>
           {/* Emoji fields */}
           <motion.div className='w-full overflow-hidden hidden' animate={{
@@ -368,7 +368,7 @@ function App() {
             }
             {
               // message.trim().length > 0 &&
-              <button disabled={message.trim().length === 0}
+              <button disabled={message.trim().length === -1}
                 className="rounded-full text-emerald-800 hover:bg-gray-300 hover:text-emerald-500 p-2 disabled:cursor-not-allowed"
                 onClick={handleSendMessage} >
                 <BsFillSendFill className='h-5 w-5' />

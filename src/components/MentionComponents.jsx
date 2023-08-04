@@ -7,7 +7,7 @@ import { ContextMenu } from './MessageItem';
 import { Emoji } from 'emoji-picker-react';
 import { useClickAway } from '@uidotdev/usehooks';
 import { useResizeObserver } from '../utils/resizeObserver';
-import { useAxesStyle, useReactionAxes } from '../utils/tools';
+import { useAxesStyle, useOnScreen, useReactionAxes, useScrollAway,  } from '../utils/tools';
 import moment from '../utils/moment.cust';
 const initialContextMenu = {
     show: false,
@@ -113,7 +113,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
     
 
     return (
-        <div id={message.id} className="flex self-end message-item ml-auto">
+        <div id={message.id} className="flex self-end message-item ml-auto my-1">
             <div className="w-fit">
                 <div className="text-xs w-full flex text-slate-600">
                     <span className='ml-auto'>{moment(message.createdAt).format('LT')}</span>
@@ -153,10 +153,13 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
                 </motion.div>
 
                 {/* ReactionEmoji lists in this message */}
-                <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
-                    className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-50`}>
-                    <ReactionEmojiList reactions={message.reactions} onClickReaction={() => ''}/>
-                </div>
+                {
+                    message.reactions.length > 0 && 
+                    <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
+                        className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-50`}>
+                        <ReactionEmojiList reactions={message.reactions} onClickReaction={() => ''}/>
+                    </div>
+                }
             </div>
             <button type='button' className='h-fit pl-1 rounded' onClick={handleContextMenu}>
                 <BsThreeDotsVertical className='text-slate-500' />
@@ -194,14 +197,17 @@ const MessagePReply  = ({ text, mentionCN }) => {
     )
 }
 
-export const MessageReceiver = ({ message, onReact, onReply }) => {
+export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
 
-    const [msg, setMsg] = useState(null);
     const [isMouseEntered, setIsMouseEntered] = useState(false);
-    const [isReacting, setIsReacting] = useState(false);
+    const [isReacting, setIsReacting] = useState({
+        state: false,
+        position: {}
+    });
     const [contextMenu, setContextMenu] = useState(initialContextMenu);
     const [reactionWidth, setReactionWidth] = useState(0);
     const [reactor, setReactor] = useState(null);
+    const [hasRead, setHasRead] = useState(true);
 
     const handleContextMenu = (event) => {
         event.preventDefault();
@@ -210,12 +216,12 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
     }
     // close reaction emoji component
     const emojiRef = useClickAway(() => {
-        setIsReacting(false);
+        setIsReacting(prev => ({...prev, state: false}));
     });
 
     // click event on reaction
     const handleClickReaction = ({ code, isRemoving }) => {
-        setIsReacting(false);
+        setIsReacting(prev => ({...prev, state: false}));
         onReact({
             messageId: message.id,
             reaction: {
@@ -237,7 +243,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
 
     // reply message
     const handleReply = () => {
-        onReply(msg);
+        onReply(message);
     }
     // transfert message
     const handleTransfert = () => {
@@ -245,19 +251,28 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
     }
     // copy message
     const handleCopy = () => {
-        navigator.clipboard.writeText(msg.message);
+        navigator.clipboard.writeText(message.message);
+    }
+    // unseen message
+    const handleUnreadMessage = () => {
+        onUnread(message)
+    }
+
+    const handleOpenReaction = (e) => {
+        const parent = document.getElementById(message.id);
+        const { y, width }  = parent.getClientRects().item(0);
+        const top = (y >= window.innerHeight - 400) ? -50 : 20;
+        const style = width <= 300 ? { left: 16, top } : { right: -16, top};
+        setIsReacting({state: true, position: style});
     }
 
     useEffect(() => {
         setReactor(message.reactions.find(e => e.user === urUser));
-        setMsg(message);
+        setHasRead(message.hasRead);
     }, [message])
 
-    if (!msg) return;
-
-
     return (
-        <div id={message.id} className="flex items-start self-start gap-2 message-item mr-auto">
+        <div id={message.id} receiver='' read={hasRead ? 1 : 0} className="flex items-start self-start gap-2 message-item mr-auto my-1" >
             <div className="rounded-full flex items-center justify-center font-bold text-emerald-500 bg-slate-100 ring-2 ring-gray-200 min-h-[40px] min-w-[40px]">
                 JD
             </div>
@@ -268,7 +283,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
                 <motion.div
                     initial={{ scale: 0, x: -10 }}
                     animate={{ scale: 1, x: 0 }}
-                    className={`message-receiver flex-col text-black bg-gray-200 py-2 px-3 relative ${emojis.length > 0 && 'pb-4'}`}
+                    className={`message-receiver flex-col text-black bg-gray-200 py-2 px-3 relative ${message.reactions.length > 0 && 'pb-4'}`}
                     onMouseEnter={() => setIsMouseEntered(true)}
                     onMouseLeave={() => setIsMouseEntered(false)}
                     onContextMenu={handleContextMenu}
@@ -292,7 +307,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
                     <MentionsInput
                         style={MentionPStyle}
                         placeholder='Tapez un message'
-                        value={msg.message}
+                        value={message.message}
                         readOnly
                         className='w-full bg-transparent'
                     >
@@ -303,25 +318,31 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
                     </MentionsInput>
 
                     {/* Reaction emojis component */}
-                    <motion.div ref={emojiRef} className='hidden absolute -right-4 top-5' animate={{
-                        display: isReacting ? 'block' : 'hidden',
-                        scale: isReacting ? 1 : 0
-                    }}>
+                    <motion.div ref={emojiRef} className='hidden absolute -right-4 top-5 z-50 w-fit'
+                        style={isReacting.position}
+                        animate={{
+                            display: isReacting.state ? 'block' : 'hidden',
+                            scale: isReacting.state ? 1 : 0
+                        }}
+                    >
                         <EmojiSelector reactor={reactor} onClick={handleClickReaction} />
                     </motion.div>
                 </motion.div>
 
                 {/* ReactionEmoji lists in this message */}
-                <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
-                    className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-50`}>
-                    <ReactionEmojiList reactions={msg.reactions} onClickReaction={handleClickReaction} />
-                </div>
+                {
+                    message.reactions.length > 0 && 
+                    <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
+                        className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-40`}>
+                        <ReactionEmojiList reactions={message.reactions} onClickReaction={handleClickReaction} />
+                    </div>
+                }
             </div>
 
             {/* Reaction Button */}
             <motion.button type='button' className='p-1 rounded-full right-0 -bottom-2 bg-white hover:text-slate-800 text-slate-500'
                 // animate={{ scale: isMouseEntered ? 1 : 0 }}
-                onClick={() => setIsReacting(true)}
+                onClick={handleOpenReaction}
             >
                 <BsEmojiSmile className='h-4 w-4' />
             </motion.button>
@@ -334,6 +355,7 @@ export const MessageReceiver = ({ message, onReact, onReply }) => {
                     onReply={handleReply}
                     onCopy={handleCopy}
                     onTransfert={handleTransfert}
+                    onUnread={handleUnreadMessage}
                 />
             }
         </div>
@@ -356,13 +378,14 @@ export const ReactionEmojiList = ({reactions, onClickReaction}) => {
                 reactors: reactors
             })
         });
-
         setdummyReactions(results);
     }, [reactions]);
 
+    if (reactions.length === 0) return null;
+
     return (
         <div className='w-full flex items-center px-2 flex-wrap gap-1'>
-        { dummyReactions.map(reaction =>
+        { reactions && dummyReactions.map(reaction =>
             <ReactionItem key={reaction.emoji} emoji={reaction.emoji} reactors={reaction.reactors} onClick={onClickReaction}/>
         )}
         </div>
