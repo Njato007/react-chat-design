@@ -66,17 +66,19 @@ const ScrollContainer = ({ children, haveNewMessage, dragActive, onScrollTop, on
     const divs = element.querySelectorAll('[receiver]')
     if (divs && divs.length > 0)
       // get each messages id and set into an array
-      onReadMessage([...divs].filter(e => e.getAttribute('read') === "0").map(e => e.id));
+      var unreadMessageId = [...divs].find(e => e.getAttribute('read') === "0")?.id;
+      if (unreadMessageId)
+        onReadMessage(unreadMessageId);
   }
 
   return (
-    <div className="flex flex-grow relative overflow-hidden">
-      <div className="flex-col flex-grow w-full overflow-y-auto overflow-x-hidden"
+    <div className="flex flex-grow relative overflow-hidden bg-white">
+      <div className="flex flex-col flex-grow w-full overflow-y-auto overflow-x-hidden"
         ref={outerDiv}
         onScroll={handleScroll}
       >
         <div
-          className="w-full relative transition-all duration-300 flex px-4 mb-4 flex-col-reverse mt-autos"
+          className="w-full relative transition-all duration-300 flex px-4 mb-4 flex-col-reverse mt-auto"
           ref={innerDiv}
           style={{ opacity: !isLoading ? 1 : 0}}
         >
