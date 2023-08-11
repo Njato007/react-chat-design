@@ -7,16 +7,17 @@ import { IoMdRefreshCircle } from 'react-icons/io'
 import { useEffect, useRef, useState } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { motion, useInView } from 'framer-motion';
-import { MessageSender, MentionInput, MessageReceiver } from './MentionComponents';
-import { MessagesData, RandomMessages, firstChar, groupByDate, isFileSizeGreaterThan5MB } from '../utils/tools';
+import { MessageSender, MentionInput, MessageReceiver } from '../MentionComponents';
+import { MessagesData, RandomMessages, firstChar, groupByDate, isFileSizeGreaterThan5MB } from '../../utils/tools';
 import { PiImagesSquare } from 'react-icons/pi'
 import { v1 } from 'uuid'
-import moment from '../utils/moment.cust';
-import FilesList from './FilesList';
-import ScrollContainer from './ui/ScrollContainer';
+import moment from '../../utils/moment.cust';
+import FilesList from '../FilesList';
+import ScrollContainer from '../ui/ScrollContainer';
 import { PiMagnifyingGlassBold } from 'react-icons/pi';
 
-function Chat() {
+function Chat({ onCloseChat, chatId }) {
+
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const displayChats = groupByDate(messages);
@@ -140,8 +141,14 @@ function Chat() {
   const handlePickEmoji = (selectedEmoji) => {
     const ref = messageInputRef.current.containerElement.querySelector('textarea');
     if (!ref) return;
-    ref.focus();
-    setMessage(prev => prev + selectedEmoji.emoji)
+    const emoji = selectedEmoji.emoji;
+    const cursor = ref.selectionStart;
+    const text = message.slice(0, cursor) + emoji + message.slice(cursor);
+    setMessage(text);
+    setTimeout(() => {
+      ref.setSelectionRange(cursor + emoji.length, cursor + emoji.length);
+      ref.focus();
+    }, 0);
   }
 
   // delete message 
@@ -232,9 +239,10 @@ function Chat() {
 
   // hooks to fetch message at first render
   useEffect(() => {
-    // setMessages(RandomMessages(0));
-    setMessages(MessagesData);
-  }, [])
+    if (!chatId) return;
+    setMessages(RandomMessages(chatId + 1));
+    // setMessages(MessagesData);
+  }, [chatId])
 
   // after adding emoji
   useEffect(() => {
@@ -251,7 +259,10 @@ function Chat() {
         {/* Active room */}
         <div className="flex items-center gap-2">
           <div className='flex items-center justify-center md:hidden'>
-            <button className="flex-gr text-slate-600 hover:text-slate-800">
+            {/* Close chat */}
+            <button className="flex-gr text-slate-600 hover:text-slate-800"
+              onClick={onCloseChat}
+            >
               <FiArrowLeft className='w-6 h-6' />
             </button>
           </div>
@@ -339,11 +350,12 @@ function Chat() {
                       </div>
                     ))
                   }
-                  <div className='w-full flex items-center gap-1 justify-end px-4'>
+
+                  {/* <div className='w-full flex items-center gap-1 justify-end px-4'>
                     <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-500 border border-indigo-200 text-xxxs flex items-center justify-center">
                       <span className='font-bold uppercase'>{firstChar('sender')}</span>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </motion.div>
             )
@@ -355,8 +367,8 @@ function Chat() {
         </div>
       </ScrollContainer>
 
-      <div className='flex items-center w-full p-3 gap-2 relative'>
-        <div className={`bg-white flex-grow text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 px-2 py-1 relative`}>
+      <div className='flex items-center w-full p-3 gap-2 relative bg-gray-100'>
+        <div className={`bg-white w-full max-w-6xl mx-auto flex-grow text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 px-2 py-1 relative`}>
           {/* Emoji fields */}
           <motion.div className='w-full overflow-hidden hidden' animate={{
             display: showEmoji ? 'block' : 'none',
@@ -403,6 +415,15 @@ function Chat() {
             >
               {!showEmoji ? <BsEmojiSmile className='h-5 w-5' /> : <BsChevronDown className='h-5 w-5' />}
             </button>
+            {
+              uploadedFiles.length === 0 &&
+              <button key={2}
+                className="flex items-center justify-center flex-grow-0 p-1 rounded-full text-slate-500 hover:bg-indigo-100 hover:text-slate-800 h-fit"
+                onClick={() => uploaderRef.current?.click()}
+              >
+                <VscFiles className='h-5 w-5' />
+              </button>
+            }
             {/* <TextInput mentionData={mentionData} /> */}
             <MentionInput ref={messageInputRef} onSubmit={handleSendMessage} onChange={setMessage} defaultValue={message} />
             {
@@ -421,15 +442,6 @@ function Chat() {
             }
           </div>
         </div>
-        {
-          uploadedFiles.length === 0 &&
-          <button key={2}
-            className="flex items-center justify-center flex-grow-0 p-2 rounded-full text-emerald-800 hover:bg-indigo-100 hover:text-emerald-500 h-fit"
-            onClick={() => uploaderRef.current?.click()}
-          >
-            <VscFiles className='h-5 w-5' />
-          </button>
-        }
       </div>
     </div>
   );

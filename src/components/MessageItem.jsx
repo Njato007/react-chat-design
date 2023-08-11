@@ -8,6 +8,7 @@ import { BiHide } from 'react-icons/bi'
 import { LiaBroomSolid } from 'react-icons/lia'
 import { PiShareFatLight } from 'react-icons/pi'
 import { useAxesStyle } from '../utils/tools'
+import { RxEyeClosed } from 'react-icons/rx'
 
 export const ContextMenu = ({ variant, x, y, closeContextMenu, onCopy, onTransfert, onReply, onDelete, OnUpdate, onUnread }) => {
 
@@ -56,7 +57,7 @@ export const ContextMenu = ({ variant, x, y, closeContextMenu, onCopy, onTransfe
 }
 
 
-export const ContextMenuChatItem = ({ isGroup, closeContextMenu, x, y, onMarkAsUnread, onHide, onLeave }) => {
+export const ContextMenuChatItem = ({ isGroup, closeContextMenu, x, y, onMarkAsUnread, onHide, onLeave, isActive, onCloseConversation }) => {
 
     const ref = useClickAway(() => {
         closeContextMenu();
@@ -67,16 +68,24 @@ export const ContextMenuChatItem = ({ isGroup, closeContextMenu, x, y, onMarkAsU
     return (
         <motion.div ref={ref} className='fixed z-[1000]' style={axesStyle()}>
             <div className='flex flex-col text-sm bg-white shadow rounded' onClick={() => closeContextMenu()}>
-                <button className='context-menu-item' onClick={() => onMarkAsUnread()}>
+                <button className='context-menu-item' onClick={() => onMarkAsUnread && onMarkAsUnread()}>
                     <GoUnread />
                     Marquer comme non lu
                 </button>
+                {
+                    isActive &&
+                    <button className='context-menu-item' onClick={() => onCloseConversation && onCloseConversation()}>
+                        <RxEyeClosed />
+                        Fermer la conversation
+                    </button>
+                }
                 <button className='context-menu-item' onClick={() => onHide && onHide()}>
                     <BiHide />
                     Dissimuler la conversation
                 </button>
                 {
-                    isGroup && <button className='context-menu-item border-t border-slate-300' onClick={() => onLeave()}>
+                    isGroup &&
+                    <button className='context-menu-item border-t border-slate-300' onClick={() => onLeave && onLeave()}>
                         <LiaBroomSolid />
                         Supprimer la conversation
                     </button>

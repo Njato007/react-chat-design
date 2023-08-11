@@ -13,7 +13,7 @@ const ScrollContainer = ({ children, haveNewMessage, dragActive, onScrollTop, on
   const [showScrollButton, setShowScrollButton] = useState(false);
   
   useEffect(() => {
-    setIsLoading(false)
+    setIsLoading(false);
   }, []);
 
   // scroll to bottom when loading is finished  
@@ -73,12 +73,12 @@ const ScrollContainer = ({ children, haveNewMessage, dragActive, onScrollTop, on
 
   return (
     <div className="flex flex-grow relative overflow-hidden bg-white">
-      <div className="flex flex-col flex-grow w-full overflow-y-auto overflow-x-hidden"
+      <div className="flex flex-col flex-grow w-full scrollbox scrollbox_delayed overflow-x-hidden overflow-y-scroll"
         ref={outerDiv}
         onScroll={handleScroll}
       >
         <div
-          className="w-full relative transition-all duration-300 flex px-4 mb-4 flex-col-reverse mt-auto"
+          className="w-full max-w-6xl mx-auto relative transition-all duration-300 flex px-6 mb-4 flex-col-reverse mt-auto scrollbox-content"
           ref={innerDiv}
           style={{ opacity: !isLoading ? 1 : 0}}
         >
