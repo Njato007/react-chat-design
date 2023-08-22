@@ -73,6 +73,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
 
     const [contextMenu, setContextMenu] = useState(initialContextMenu);
     const [reactionWidth, setReactionWidth] = useState(0);
+    const [showViewers, setShowViewers] = useState(false);
     const handleContextMenu = (event) => {
         event.preventDefault();
         const { pageX, pageY } = event;
@@ -123,6 +124,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
                     animate={{ scale: 1, x: 0 }}
                     className={`message-sender flex flex-col text-white bg-gradient-to-r from-emerald-500 to-emerald-600 py-2 px-3 ${message.reactions.length > 0 && 'pb-4'}`}
                     onContextMenu={handleContextMenu}
+                    onClick={() => setShowViewers(!showViewers)}
                     ref={messageP_Ref}
                 >
                     {
@@ -160,6 +162,16 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
                         <ReactionEmojiList reactions={message.reactions} onClickReaction={() => ''}/>
                     </div>
                 }
+                {/* Seen by users... */}
+                <motion.div className={`text-slate-400 text-xxs py-1`}
+                    animate={{
+                        y: showViewers ? (message.reactions.length > 0 ? -16 : 0) : -5,
+                        display: showViewers ? 'block' : 'none',
+                        zIndex: showViewers ? 1 : -10
+                    }}
+                >
+                    <b>Vu</b> par {message.seenBy.join(', ')}
+                </motion.div>
             </div>
             <button type='button' className='h-fit pl-1 rounded' onClick={handleContextMenu}>
                 <BsThreeDotsVertical className='text-slate-500' />
@@ -207,7 +219,8 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
     const [contextMenu, setContextMenu] = useState(initialContextMenu);
     const [reactionWidth, setReactionWidth] = useState(0);
     const [reactor, setReactor] = useState(null);
-    const [hasRead, setHasRead] = useState(true);
+    const [isRead, setIsRead] = useState(true);
+    const [showViewers, setShowViewers] = useState(false);
 
     const handleContextMenu = (event) => {
         event.preventDefault();
@@ -268,11 +281,11 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
 
     useEffect(() => {
         setReactor(message.reactions.find(e => e.user === urUser));
-        setHasRead(message.hasRead);
+        setIsRead(message.isRead);
     }, [message])
 
     return (
-        <div id={message.id} receiver='' read={hasRead ? 1 : 0} className="flex items-start self-start gap-2 message-item mr-auto my-1" >
+        <div id={message.id} receiver='' read={isRead ? 1 : 0} className="flex items-start self-start gap-2 message-item mr-auto my-1" >
             <div className="rounded-full flex items-center justify-center font-bold text-emerald-500 bg-slate-100 ring-2 ring-gray-200 min-h-[40px] min-w-[40px]">
                 JD
             </div>
@@ -310,6 +323,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
                         value={message.message}
                         readOnly
                         className='w-full bg-transparent'
+                        onClick={() => setShowViewers(!showViewers)}
                     >
                         <Mention
                             className='text-black '
@@ -337,6 +351,16 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
                         <ReactionEmojiList reactions={message.reactions} onClickReaction={handleClickReaction} />
                     </div>
                 }
+                {/* Seen by users... */}
+                <motion.div className={`text-slate-400 text-xxs py-1`}
+                    animate={{
+                        y: showViewers ? (message.reactions.length > 0 ? -16 : 0) : -5,
+                        display: showViewers ? 'block' : 'none',
+                        zIndex: showViewers ? 1 : -10
+                    }}
+                >
+                    <b>Vu</b> par {message.seenBy.join(', ')}
+                </motion.div>
             </div>
 
             {/* Reaction Button */}
@@ -420,12 +444,12 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
             animate={{
                 scale: [0, 1],
             }}
-            className='p-1 rounded-3xl bg-white border border-slate-200 flex gap-0 items-center relative cursor-pointer'
+            className='p-1 rounded-3xl bg-white border border-slate-200 flex gap-0 items-center relative cursor-pointer min-w-[24px] min-h-[24px]'
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            <Emoji unified={emoji} emojiStyle='google' size={24}/>
+            <Emoji unified={emoji} emojiStyle='google' size={20}/>
             {
                 reactors.length > 1 &&
                 <span className='text-sm text-slate-700 px-1'>{reactors.length}</span>
