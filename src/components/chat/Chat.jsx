@@ -142,13 +142,13 @@ function Chat({ onCloseChat, chatId }) {
     const ref = messageInputRef.current.containerElement.querySelector('textarea');
     if (!ref) return;
     const emoji = selectedEmoji.emoji;
+    ref.focus();
     const cursor = ref.selectionStart;
     const text = message.slice(0, cursor) + emoji + message.slice(cursor);
     setMessage(text);
     setTimeout(() => {
       ref.setSelectionRange(cursor + emoji.length, cursor + emoji.length);
-      ref.focus();
-    }, 0);
+    }, 100);
   }
 
   // delete message 

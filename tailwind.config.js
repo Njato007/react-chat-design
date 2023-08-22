@@ -6,9 +6,10 @@ module.exports = {
   theme: {
     extend: {
       fontSize: {
-        sm: '.8rem',
-        xxs: '.65rem',
-        xxxs: '.5rem',
+        sm: '.845rem',
+        xs: '.8rem',
+        xxs: '.75rem',
+        xxxs: '.65rem',
       }
     },
   },
