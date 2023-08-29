@@ -9,7 +9,7 @@ const ContactItem = ({ openChat, contactId }) => {
 
     return (
         <motion.div
-            className="flex items-center gap-2 p-2 px-3 rounded-lg hover:bg-indigo-100"
+            className="flex items-center gap-2 p-2 px-3 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900"
             onClick={handleOpenChat}
             initial={{ x: -100 }}
             animate={{ x: 0 }}
@@ -19,7 +19,7 @@ const ContactItem = ({ openChat, contactId }) => {
                 <span className="font-bold text-base">A</span>
             </div>
             <div className="flex flex-col justify-center gap-1">
-                <h1 className='text-sm font-bold text-gray-600 '>John Doe</h1>
+                <h1 className='text-sm font-bold text-gray-600 dark:text-gray-400'>John Doe</h1>
                 <div className="flex gap-1">
                     
                 </div>

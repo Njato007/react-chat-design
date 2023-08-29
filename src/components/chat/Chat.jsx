@@ -1,20 +1,24 @@
+import ReactDomServer from 'react-dom/server';
 import { BsChevronDown, BsFillSendFill, BsEmojiSmile, BsReply } from 'react-icons/bs';
-import { MdCancel } from 'react-icons/md'
+import { MdCancel, MdOutlineColorLens } from 'react-icons/md'
 import { VscFiles } from 'react-icons/vsc'
 import { RxCross2 } from 'react-icons/rx'
-import { FiArrowLeft } from 'react-icons/fi'
+import { FiActivity, FiArrowLeft } from 'react-icons/fi'
 import { IoMdRefreshCircle } from 'react-icons/io'
 import { useEffect, useRef, useState } from 'react';
-import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
+import EmojiPicker, { Emoji, EmojiStyle } from 'emoji-picker-react';
 import { motion, useInView } from 'framer-motion';
 import { MessageSender, MentionInput, MessageReceiver } from '../MentionComponents';
-import { MessagesData, RandomMessages, firstChar, groupByDate, isFileSizeGreaterThan5MB } from '../../utils/tools';
+import { MessagesData, RandomMessages, firstChar, getSelectionStart, groupByDate, insertElement, insertEmojiElement, insertNodeOverSelection, insertOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, setCaretPosition, trimString } from '../../utils/tools';
 import { PiImagesSquare } from 'react-icons/pi'
 import { v1 } from 'uuid'
 import moment from '../../utils/moment.cust';
 import FilesList from '../FilesList';
 import ScrollContainer from '../ui/ScrollContainer';
 import { PiMagnifyingGlassBold } from 'react-icons/pi';
+import ChatInput from '../ChatInput';
+import ThemeSelector from './ThemeSelector';
+import Typing, { UserIsTyping } from './Typing';
 
 function Chat({ onCloseChat, chatId }) {
 
@@ -24,11 +28,15 @@ function Chat({ onCloseChat, chatId }) {
   const [isGettingOldMessage, setIsGettingOldMessage] = useState(false);
   const [lastPreviousMessage, setLastPreviousMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const initialState = {
     state: false,
     data: {}
   }
+  // theme (color & bg of chat)
+  const [theme, setTheme] = useState('_default');
+  const [showTheme, setShowTheme] = useState(false);
   // state for replying
   const [isReplying, setIsReplying] = useState(initialState);
   // state for updating
@@ -43,6 +51,8 @@ function Chat({ onCloseChat, chatId }) {
   const uploaderRef = useRef(null);
 
   const handleSendMessage = () => {
+    if (messageInputRef.current.textContent.trim().length === 0) return;
+    const message = trimString(messageInputRef.current.innerHTML);
     // reply message
     if (isReplying.state) {
       setMessages([...messages, {
@@ -80,6 +90,7 @@ function Chat({ onCloseChat, chatId }) {
       }]);
     }
     setMessage('');
+    messageInputRef.current.innerHTML = '';
     setShowEmoji(false);
     // trigger to scroll to bottom
     setHasNewMessage(!hasNewMessage);
@@ -125,8 +136,8 @@ function Chat({ onCloseChat, chatId }) {
     });
     setIsUpdating(initialState);
 
-    if (messageInputRef.current)
-      messageInputRef.current.containerElement.querySelector('textarea').focus()
+    // if (messageInputRef.current)
+    //   messageInputRef.current.containerElement.querySelector('textarea').focus()
   }
 
   // handle cancel reply message
@@ -139,15 +150,23 @@ function Chat({ onCloseChat, chatId }) {
 
   // handle pick emoji
   const handlePickEmoji = (selectedEmoji) => {
-    const ref = messageInputRef.current.containerElement.querySelector('textarea');
+    const ref = messageInputRef.current;
     if (!ref) return;
     const emoji = selectedEmoji.emoji;
     ref.focus();
-    const cursor = ref.selectionStart;
-    const text = message.slice(0, cursor) + emoji + message.slice(cursor);
-    setMessage(text);
+    const cursor = getSelectionStart(ref);
+    // get emoji outer html
+    const emojiText = ReactDomServer.renderToString(
+      <Emoji unified={selectedEmoji.unified} size={20} emojiStyle='google' />
+    )
+    const text = message.slice(0, cursor) + emojiText + message.slice(cursor);
+
+    insertEmojiElement(messageInputRef, <Emoji unified={selectedEmoji.unified} size={20} emojiStyle='google' />);
+
+
+    // setMessage(text);
     setTimeout(() => {
-      ref.setSelectionRange(cursor + emoji.length, cursor + emoji.length);
+      // setCaretPosition(ref, cursor)
     }, 100);
   }
 
@@ -179,7 +198,7 @@ function Chat({ onCloseChat, chatId }) {
     // setMessage
     setMessage(msg.message);
     // focus textarea
-    messageInputRef.current.containerElement.querySelector('textarea').focus();
+    // messageInputRef.current.containerElement.querySelector('textarea').focus();
   }
 
   const handleCancelUpdate = () => {
@@ -246,21 +265,21 @@ function Chat({ onCloseChat, chatId }) {
 
   // after adding emoji
   useEffect(() => {
-    messageInputRef.current.containerElement.querySelector('textarea').selectionEnd = cursorPosition;
+    // messageInputRef.current.containerElement.querySelector('textarea').selectionEnd = cursorPosition;
   }, [cursorPosition]);
 
   return (
-    <div className="flex h-screen flex-col bg-gray-100"
+    <div className="flex h-screen flex-col bg-gray-100 dark:bg-slate-900"
       onDragOver={handleDrag}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="flex items-center justify-between px-2 bg-white border-b border-slate-300 py-3">
+      <div className="flex items-center justify-between px-2 bg-white dark:bg-gray-800 border-b border-slate-300 dark:border-gray-600 py-3">
         {/* Active room */}
         <div className="flex items-center gap-2">
           <div className='flex items-center justify-center md:hidden'>
             {/* Close chat */}
-            <button className="flex-gr text-slate-600 hover:text-slate-800"
+            <button className="flex-gr text-slate-600 dark:text-gray-400 hover:text-slate-800"
               onClick={onCloseChat}
             >
               <FiArrowLeft className='w-6 h-6' />
@@ -269,7 +288,7 @@ function Chat({ onCloseChat, chatId }) {
           <div className="relative w-10 h-10 bg-indigo-100 text-indigo-500 border-2 border-indigo-300 rounded-full flex items-center justify-center">
             <span className="font-bold text-base">G</span>
           </div>
-          <div className="text-slate-500 flex flex-col justify-between">
+          <div className="text-slate-500 dark:text-gray-300 flex flex-col justify-between">
             <h1 className='text-sm font-semibold'>Selected ROOM</h1>
             {/* Show status if not a group room */}
             <div className='flex items-center gap-1 text-xs line-clamp-1'>
@@ -283,13 +302,24 @@ function Chat({ onCloseChat, chatId }) {
         </div>
         {/* search and gallery */}
         <div className='flex gap-3 items-center px-2'>
-          <button className='p-1 text-slate-500 hover:text-slate-800'>
+          <button className='p-1 text-slate-500 dark:text-gray-400 hover:text-slate-800'
+            onClick={() => setShowTheme(true)}
+          >
+            <MdOutlineColorLens className='w-5 h-5'/>
+          </button>
+          <button className='p-1 text-slate-500 dark:text-gray-400 hover:text-slate-800'>
             <PiMagnifyingGlassBold className='w-5 h-5'/>
           </button>
-          <button className='p-1 text-slate-500 hover:text-slate-800'>
+          <button className='p-1 text-slate-500 dark:text-gray-400 hover:text-slate-800'>
             <PiImagesSquare className='w-6 h-6'/>
           </button>
-
+          
+          {/* Theme selector */}
+          <motion.div className="absolute top-20 right-4 z-50 hidden"
+            animate={{ display: showTheme ? 'block' : 'none'}}
+          >
+            <ThemeSelector setTheme={setTheme} currentTheme={theme} onClose={() => setShowTheme(false)}/>
+          </motion.div>
         </div>
       </div>
       <ScrollContainer
@@ -301,7 +331,7 @@ function Chat({ onCloseChat, chatId }) {
         {
           isGettingOldMessage &&
           <div className="absolute top-2 w-full flex">
-            <div className="shadow-lg rounded-2xl px-3 py-2 border border-slate-200 z-50 bg-white flex items-center justify-center w-fit mx-auto">
+            <div className="shadow-lg rounded-2xl px-3 py-2 border border-slate-200 z-50 bg-white dark:bg-gray-800 flex items-center justify-center w-fit mx-auto">
               <IoMdRefreshCircle className='animate-spin h-8 w-8 text-emerald-500' />
             </div>
           </div>
@@ -315,7 +345,7 @@ function Chat({ onCloseChat, chatId }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <fieldset className='border-t border-slate-200 my-5'>
+                <fieldset className='border-t border-slate-200 dark:border-gray-700 my-5'>
                   <legend className='text-center text-xs px-3 text-slate-500'>{moment(new Date(item.date)).calendar()}</legend>
                 </fieldset>
                 <div className="w-full flex flex-col">
@@ -327,6 +357,7 @@ function Chat({ onCloseChat, chatId }) {
                             onDelete={handleDeleteMessage}
                             onReply={handleReplyMessage}
                             onUpdate={handleUpdateMessage}
+                            theme={theme}
                           />
                           :
                           <>
@@ -350,6 +381,10 @@ function Chat({ onCloseChat, chatId }) {
                       </div>
                     ))
                   }
+                  
+                  {
+                    isTyping && <UserIsTyping />
+                  }
 
                   {/* <div className='w-full flex items-center gap-1 justify-end px-4'>
                     <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-500 border border-indigo-200 text-xxxs flex items-center justify-center">
@@ -367,8 +402,8 @@ function Chat({ onCloseChat, chatId }) {
         </div>
       </ScrollContainer>
 
-      <div className='flex items-center w-full p-3 gap-2 relative bg-gray-100'>
-        <div className={`bg-white w-full max-w-6xl mx-auto flex-grow text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 px-2 py-1 relative`}>
+      <div className='flex flex-col items-center w-full p-3 gap-2 relative bg-gray-100 dark:bg-gray-950'>
+        <div className={`bg-white dark:bg-gray-900 w-full max-w-6xl mx-auto flex-grow text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 dark:border-gray-800 px-2 py-1 relative`}>
           {/* Emoji fields */}
           <motion.div className='w-full overflow-hidden hidden' animate={{
             display: showEmoji ? 'block' : 'none',
@@ -377,7 +412,7 @@ function Chat({ onCloseChat, chatId }) {
               searchPlaceHolder='Chercher...'
               skinTonesDisabled
               emojiStyle={EmojiStyle.GOOGLE}
-              theme='light'
+              theme='auto'
               previewConfig={{
                 showPreview: false,
               }}
@@ -390,13 +425,13 @@ function Chat({ onCloseChat, chatId }) {
             isReplying.state &&
             <motion.div
               // animate={{ opacity: [0, 1] }}
-              className="w-full border-b border-slate-300 p-3 flex items-start gap-1">
+              className="w-full border-b border-slate-300 p-3 flex items-start gap-1  text-gray-900 dark:text-gray-50">
               <BsReply className='w-4 h-4 flex-shrink-0' />
               <div className="flex flex-col flex-grow">
-                <p className='line-clamp-3 font-normal'>
-                  {isReplying.data.message}
-                </p>
-                <p className='text-slate-600'>
+                <p className='line-clamp-3 font-normal chatbox-input'
+                  dangerouslySetInnerHTML={{__html: maximizeDisplay(isReplying.data.message)}}
+                />
+                <p className='text-slate-600 dark:text-gray-400'>
                   {isReplying.data.user}, 10/07/2023
                 </p>
               </div>
@@ -410,7 +445,7 @@ function Chat({ onCloseChat, chatId }) {
           <FilesList files={uploadedFiles} changeFiles={setUploadedFiles} onAddFile={() => uploaderRef.current?.click()} />
 
           <div className="flex items-center gap-1 relative" id='mention_default'>
-            <button type="button" className='p-1 hover:bg-slate-200 text-slate-500 hover:text-slate-800 rounded-full'
+            <button type="button" className='p-1 hover:bg-indigo-100 dark:hover:text-gray-400 dark:hover:bg-gray-700 text-slate-500 hover:text-slate-800 rounded-full'
               onClick={() => setShowEmoji(!showEmoji)}
             >
               {!showEmoji ? <BsEmojiSmile className='h-5 w-5' /> : <BsChevronDown className='h-5 w-5' />}
@@ -418,14 +453,16 @@ function Chat({ onCloseChat, chatId }) {
             {
               uploadedFiles.length === 0 &&
               <button key={2}
-                className="flex items-center justify-center flex-grow-0 p-1 rounded-full text-slate-500 hover:bg-indigo-100 hover:text-slate-800 h-fit"
+                className="flex items-center justify-center flex-grow-0 p-1 rounded-full text-slate-500 hover:bg-indigo-100 dark:hover:text-gray-400 dark:hover:bg-gray-700 hover:text-slate-800 h-fit"
                 onClick={() => uploaderRef.current?.click()}
               >
                 <VscFiles className='h-5 w-5' />
               </button>
             }
+
             {/* <TextInput mentionData={mentionData} /> */}
-            <MentionInput ref={messageInputRef} onSubmit={handleSendMessage} onChange={setMessage} defaultValue={message} />
+            <ChatInput value={message} ref={messageInputRef} onChange={setMessage} onSubmit={handleSendMessage} />
+
             {
               isUpdating.state &&
               <button key={1} className="rounded-full text-rose-400 hover:bg-gray-300 hover:text-rose-500 p-2" onClick={handleCancelUpdate} >
@@ -435,7 +472,7 @@ function Chat({ onCloseChat, chatId }) {
             {
               // message.trim().length > 0 &&
               <button disabled={message.trim().length === -1}
-                className="rounded-full text-emerald-800 hover:bg-gray-300 hover:text-emerald-500 p-2 disabled:cursor-not-allowed"
+                className={`rounded-full font-bold text-black dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 p-2 disabled:cursor-not-allowed`}
                 onClick={handleSendMessage} >
                 <BsFillSendFill className='h-5 w-5' />
               </button>

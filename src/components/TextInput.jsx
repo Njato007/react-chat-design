@@ -31,7 +31,6 @@ const TextInput = ({ mentionData }) => {
             suffixText={'&nbsp;'}
             locale='fr-FR'
             change={(e) => console.log(e)}
-            
         ></MentionComponent>
         <div id='inputMention' placeholder='Tapez un message' className='w-full px-2 py-2 outline-none bg-transparent text-black'></div>
     </div>

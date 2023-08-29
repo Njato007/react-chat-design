@@ -1,5 +1,10 @@
 import { addDays } from "date-fns";
+import { Emoji } from "emoji-picker-react";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { render } from "react-dom";
+import { createRoot } from "react-dom/client";
+import { FiRefreshCw } from "react-icons/fi";
+import ReactDOMServer from 'react-dom/server';
 import { v1 } from "uuid";
 
 export const useAxesStyle = (x, y) => {
@@ -162,3 +167,274 @@ export function useOnScreen(ref) {
 }
 
 export const firstChar = (word) => word.charAt(0);
+
+export const useTheme = () => {
+  const [theme, _setTheme] = useState('light');
+
+  useEffect(() => {
+    const currentTheme = localStorage.getItem('theme');
+    if (currentTheme) setTheme(currentTheme);
+  }, []);
+
+  const setTheme = (theme) => {
+    _setTheme(theme);
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
+
+  return { theme, setTheme }
+}
+
+// Function to set the caret position
+export function setCaretPosition(element, caretPos) {
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.setStart(element.childNodes[0], caretPos);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    element.focus();
+}
+// Function to get the selection start position
+export function getSelectionStart(element) {
+  const selection = window.getSelection();
+  if (selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(element);
+      preCaretRange.setEnd(range.startContainer, range.startOffset);
+      return preCaretRange.toString().length;
+  }
+  return 0;
+}
+
+// Function to get the caret position
+export function getCaretPosition(editableDiv) {
+  var caretPos = 0,
+  sel, range;
+  if (window.getSelection) {
+    sel = window.getSelection();
+    if (sel.rangeCount) {
+      range = sel.getRangeAt(0);
+      if (range.commonAncestorContainer.parentNode == editableDiv) {
+        caretPos = range.endOffset;
+      }
+    }
+  } else if (document.selection && document.selection.createRange) {
+    range = document.selection.createRange();
+    if (range.parentElement() == editableDiv) {
+      var tempEl = document.createElement("span");
+      editableDiv.insertBefore(tempEl, editableDiv.firstChild);
+      var tempRange = range.duplicate();
+      tempRange.moveToElementText(tempEl);
+      tempRange.setEndPoint("EndToEnd", range);
+      caretPos = tempRange.text.length;
+    }
+  }
+  return caretPos;
+}
+
+export const insertOverSelection = (element) => {
+  const selection = window.getSelection();
+  if (selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0);
+    range.deleteContents(); // Delete the selected content
+    range.insertNode(element);
+
+    range.collapse(false);
+    selection.removeAllRanges();
+  }
+};
+
+export const insertPeopleAsElement = (ref, element) => {
+  const range = window.getSelection().getRangeAt(0);
+  const span = document.createElement('span');
+  span.contentEditable = false;
+  span.className = 'people'
+  span.style.userSelect = 'none'
+  const root = createRoot(span);
+  root.render(element);
+  
+  range.deleteContents();
+  range.insertNode(span);
+
+  // Move the caret position after the inserted element
+  const newRange = document.createRange();
+  newRange.setStartAfter(span);
+  newRange.collapse(true);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(newRange);
+
+  // Focus on the contentEditable div
+  ref.current.focus();
+};
+
+export const insertEmojiElement = (ref, element) => {
+  const range = window.getSelection().getRangeAt(0);
+  const span = document.createElement('span');
+  span.className = 'emoji';
+  span.contentEditable = false;
+  span.style.userSelect = 'none'
+  const root = createRoot(span);
+  root.render(element);
+  
+  range.deleteContents();
+  range.insertNode(span);
+
+  // Move the caret position after the inserted element
+  const newRange = document.createRange();
+  newRange.setStartAfter(span);
+  newRange.collapse(true);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(newRange);
+
+  // Focus on the contentEditable div
+  ref.current.focus();
+};
+
+export const insertMentionElement = () => {
+  const range = window.getSelection().getRangeAt(0);
+  const span = document.createElement('span');
+  span.id = '_mention';
+  // span.className = 'at_mention'
+  span.contentEditable = true;
+  span.innerHTML = '@';
+  range.insertNode(span);
+
+  // Move the caret position after the inserted element
+  const newRange = document.createRange();
+  newRange.setStartAfter(span);
+  newRange.collapse(true);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(newRange);
+
+  // Focus on the contentEditable span
+  return span;
+};
+
+export const insertTextNode = (ref, textnode) => {
+  const range = window.getSelection().getRangeAt(0);
+  const span = document.createElement('span');
+  span.contentEditable = false;
+  span.style.userSelect = 'none'
+  span.innerHTML = textnode;
+  range.insertNode(span);
+
+  // Move the caret position after the inserted element
+  const newRange = document.createRange();
+  newRange.setStartAfter(span);
+  newRange.collapse(true);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(newRange);
+
+  // Focus on the contentEditable span
+  ref.current.focus();
+};
+
+
+export const minimize = (html) => {
+  // copy content to avoid reference
+  const container = document.createElement('div');
+  container.innerHTML = html.innerHTML;
+  // minimize emoji image
+  const images = container.querySelectorAll('span.emoji');
+  for (let spanImage of images) {
+    const image = spanImage.firstElementChild;
+    const splited = image.src.split('/');
+    const unified = splited[splited.length - 1].split('.')[0];
+    spanImage.prepend();
+    const textNode = document.createTextNode(`[[:${unified}:]]`);
+    spanImage.before(textNode);
+    spanImage.remove();
+  }
+  // minimize people mentioned
+  const mentions = container.querySelectorAll('span.people');
+  for (let people of mentions) {
+    const mention = people.firstElementChild;
+    const content = mention.textContent;
+    const textNode = document.createTextNode(`{{${content}}}`);
+    people.before(textNode)
+    people.remove();
+  }
+
+  // remove span which contains span
+  const spaces = container.querySelectorAll('span');
+  for (let span of spaces) {
+    if (span.innerHTML == '&nbsp;') {
+      span.before(' ');
+      span.remove();
+    }
+  }
+
+  return container.innerHTML;
+}
+
+export const maximizeDisplay = (text) => {
+  // check emojis
+  const regexEmoji = /\[\[:([^:]+):\]\]/;
+  var newText = text;
+  var matches = '';
+  while ((matches = regexEmoji.exec(newText)) !== null) {
+    const emoji = <Emoji unified={matches[1]} emojiStyle="google" size={20} />
+    const emojiText = ReactDOMServer.renderToString(emoji);
+    newText = newText.replace(matches[0], emojiText);
+  }
+
+  // check mention
+  const regexTag =/\{\{@([^:]+)\}\}/
+  while ((matches = regexTag.exec(newText)) !== null) {
+    const tag = <span id={matches[1]} contentEditable={false} className="mentioned_people">@{matches[1]}</span>
+    const tagText = ReactDOMServer.renderToString(tag);
+    newText = newText.replace(matches[0], tagText);
+  }
+
+  return newText;
+
+}
+
+export const moveCursorToLast = (divRef) => {
+  const range = document.createRange();
+  const selection = window.getSelection();
+  if (divRef.current) {
+    range.selectNodeContents(divRef.current);
+    range.collapse(false); // Move to the end of the content
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+}
+
+export const insertLine = () => {
+  if(getSelection().modify) {     /* chrome */
+  var selection = window.getSelection(),
+    range = selection.getRangeAt(0),
+    br = document.createTextNode('\n');
+    range.deleteContents();
+    range.insertNode(br);
+    range.setStartAfter(br);
+    range.setEndAfter(br);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);       /* end chrome */
+  } else {
+    const newline = document.createTextNode('\n');    /* internet explorer */
+    var range = getSelection().getRangeAt(0);
+    range.surroundContents(newline);
+    range.selectNode(newline.nextSibling);   /* end Internet Explorer 11 */
+  }
+}
+
+export const trimString = (string) => {
+  return string.trim().replace(/&nbsp;/g, '');
+}

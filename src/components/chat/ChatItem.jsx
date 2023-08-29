@@ -42,7 +42,7 @@ const ChatItem = ({ i, isActive, onClose }) => {
 
     return (
         <motion.div
-            className={`relative p-3 rounded-lg flex items-center gap-2 justify-between ${isActive && 'bg-indigo-100'} active:bg-indigo-200 hover:bg-indigo-50 transition-all duration-200 cursor-pointer`}
+            className={`relative p-3 rounded-lg flex items-center gap-2 justify-between ${isActive && 'bg-indigo-100 dark:bg-gray-700'} active:bg-indigo-200 dark:active:bg-gray-950 hover:bg-indigo-50 dark:hover:bg-gray-950 transition-all duration-200 cursor-pointer`}
             onContextMenu={handleContextMenu}
         >
             {/* Profile & last message */}
@@ -53,7 +53,7 @@ const ChatItem = ({ i, isActive, onClose }) => {
                     <span className='absolute h-3 w-3 border-2 bg-green-500 border-white rounded-full -bottom-0 -right-1'></span>
                 </div>
                 <div className="flex flex-col justify-between gap-1">
-                    <h1 className='text-sm font-bold text-gray-600 '>John Doe</h1>
+                    <h1 className='text-sm font-bold text-gray-600 dark:text-gray-300'>John Doe</h1>
                     <div className="flex gap-1">
                         {
                             i === 4 &&
@@ -61,7 +61,7 @@ const ChatItem = ({ i, isActive, onClose }) => {
                                 <span className='h-fit w-fit px-2 py-0 text-xxs text-white bg-rose-400 rounded-full'>2</span>
                             </div>
                         }
-                        <p className={`text-gray-500 text-xs line-clamp-1 ${i === 4 && 'font-bold'}`}>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
+                        <p className={`text-gray-500 dark:text-gray-400 text-xs line-clamp-1 ${i === 4 && 'font-bold'}`}>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
                     </div>
                 </div>
             </div>

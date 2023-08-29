@@ -1,13 +1,11 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react'
-import { MentionsInput, Mention } from 'react-mentions'
-import { MentionInputStyle, MentionPReplyStyle, MentionPStyle } from '../mention-defaultStyle';
 import { BsChevronLeft, BsChevronRight, BsEmojiSmile, BsReply, BsThreeDotsVertical } from 'react-icons/bs';
 import { motion } from 'framer-motion';
 import { ContextMenu } from './MessageItem';
 import { Emoji } from 'emoji-picker-react';
 import { useClickAway } from '@uidotdev/usehooks';
 import { useResizeObserver } from '../utils/resizeObserver';
-import { useAxesStyle, useOnScreen, useReactionAxes, useScrollAway,  } from '../utils/tools';
+import { maximizeDisplay, useAxesStyle, useOnScreen, useReactionAxes, useScrollAway, useTheme,  } from '../utils/tools';
 import moment from '../utils/moment.cust';
 const initialContextMenu = {
     show: false,
@@ -23,53 +21,7 @@ const suggestions = [
 ];
 const urUser = 'sender'
 
-export const MentionInput = forwardRef(({ onChange, onSubmit, defaultValue, ...props }, ref) => {
-    const [value, setValue] = useState('');
-
-    const handleChange = (value) => {
-        setValue(value);
-        onChange(value)
-    }
-
-    const handleKeyDown = (event) => {
-        if (event.keyCode == 13 && !event.shiftKey) {
-            event.preventDefault();
-            onSubmit(); //Submit your form here
-            return false;
-        }
-    }
-
-    useEffect(() => {
-        setValue(defaultValue);
-    }, [defaultValue]);
-
-    return (
-        <MentionsInput
-            ref={ref}
-            autoFocus
-            style={MentionInputStyle}
-            placeholder='Tapez un message'
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className='w-full bg-transparent text-slate-900 text-sm'
-            allowSuggestionsAboveCursor
-            onKeyDown={handleKeyDown}
-            {...props}
-        >
-            <Mention
-                className='text-black'
-                appendSpaceOnAdd={true}
-                trigger={'@'}
-                displayTransform={(id, display) => `@${display}`}
-                renderSuggestion={(entry) => <span className='font-bold'>{entry.display}</span>}
-                data={suggestions}
-
-            />
-        </MentionsInput>
-    )
-});
-
-export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
+export const MessageSender = ({ message, onReply, onDelete, onUpdate, theme }) => {
 
     const [contextMenu, setContextMenu] = useState(initialContextMenu);
     const [reactionWidth, setReactionWidth] = useState(0);
@@ -80,6 +32,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
         setContextMenu({ show: true, x: pageX, y: pageY });
     }
     const reaction_Ref = useRef();
+    const messageRef = useRef(null);
     const messageP_Ref = useResizeObserver((cr, rest) => {
         if (reaction_Ref.current) {
             setReactionWidth(cr.width + 24);
@@ -96,7 +49,19 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
     }
     // copy message
     const handleCopy = () => {
-        navigator.clipboard.writeText(message.message);
+        // navigator.clipboard.writeText(message.message);
+        const html = messageRef.current.innerHTML;
+        const text = messageRef.current.innerText;
+        const clipboardItem = new ClipboardItem({
+            'text/html':  new Blob([html],
+            { type: 'text/html' }),
+            'text/plain': new Blob([text],
+            {type: 'text/plain'})
+        });
+        
+        navigator.clipboard.write([clipboardItem]).
+        then(_ => console.log("clipboard.write() Ok"),
+        error => console.log(error));
     }
     // close context menu
     const handleCloseContextMenu = () => setContextMenu(initialContextMenu);
@@ -116,13 +81,13 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
     return (
         <div id={message.id} className="flex self-end message-item ml-auto my-1">
             <div className="w-fit">
-                <div className="text-xs w-full flex text-slate-600">
+                <div className="text-xs w-full flex text-slate-600 dark:text-gray-400">
                     <span className='ml-auto'>{moment(message.createdAt).format('LT')}</span>
                 </div>
                 <motion.div
                     initial={{ scale: 0, x: 10 }}
                     animate={{ scale: 1, x: 0 }}
-                    className={`message-sender flex flex-col text-white bg-gradient-to-r from-emerald-500 to-emerald-600 py-2 px-3 ${message.reactions.length > 0 && 'pb-4'}`}
+                    className={`message-sender flex flex-col text-white ${theme} py-2 px-3 ${message.reactions.length > 0 && 'pb-4'}`}
                     onContextMenu={handleContextMenu}
                     onClick={() => setShowViewers(!showViewers)}
                     ref={messageP_Ref}
@@ -133,7 +98,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
                             <div className="flex flex-col items-start cursor-pointer">
                                 <BsReply className='w-5 h-5 text-white'/>
                                 <div className="pl-4">
-                                    <MessagePReply text={message.reply.message} mentionCN={'text-white'} />
+                                    <p className='chatbox-input italic' dangerouslySetInnerHTML={{__html: maximizeDisplay(message.reply.message)}} />
                                 </div>
                             </div>
                             <div className="pl-4">
@@ -141,17 +106,10 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
                             </div>
                         </a>
                     }
-                    <MentionsInput
-                        style={MentionPStyle}
-                        value={message.message}
-                        readOnly
-                        className='w-full bg-transparent'
-                    >
-                        <Mention
-                            className='text-white '
-                            displayTransform={(id, display) => `@${display}`}
-                        />
-                    </MentionsInput>
+
+                    <div ref={messageRef} className="w-full bg-transparent chatbox-input"
+                        dangerouslySetInnerHTML={{__html: maximizeDisplay(message.message)}}
+                    />
                 </motion.div>
 
                 {/* ReactionEmoji lists in this message */}
@@ -193,22 +151,6 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate }) => {
     )
 }
 
-const MessagePReply  = ({ text, mentionCN }) => {
-    return (
-        <MentionsInput
-            style={MentionPReplyStyle}
-            value={text}
-            readOnly
-            className='w-full bg-transparent'
-        >
-            <Mention
-                className={mentionCN}
-                displayTransform={(id, display) => `@${display}`}
-            />
-        </MentionsInput>
-    )
-}
-
 export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
 
     const [isMouseEntered, setIsMouseEntered] = useState(false);
@@ -221,6 +163,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
     const [reactor, setReactor] = useState(null);
     const [isRead, setIsRead] = useState(true);
     const [showViewers, setShowViewers] = useState(false);
+    const messageRef = useRef(null);
 
     const handleContextMenu = (event) => {
         event.preventDefault();
@@ -264,7 +207,18 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
     }
     // copy message
     const handleCopy = () => {
-        navigator.clipboard.writeText(message.message);
+        const html = messageRef.current.innerHTML;
+        const text = messageRef.current.innerText;
+        const clipboardItem = new ClipboardItem({
+            'text/html':  new Blob([html],
+            { type: 'text/html' }),
+            'text/plain': new Blob([text],
+            {type: 'text/plain'})
+        });
+        
+        navigator.clipboard.write([clipboardItem]).
+        then(_ => console.log("clipboard.write() Ok"),
+        error => console.log(error));
     }
     // unseen message
     const handleUnreadMessage = () => {
@@ -290,58 +244,61 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
                 JD
             </div>
             <div className='w-fit'>
-                <div className="text-xs w-full flex text-slate-600">
+                <div className="text-xs w-full flex text-slate-600 dark:text-gray-400">
                     <span className='mr-auto'>{moment(message.createdAt).format('LT')}</span>
                 </div>
-                <motion.div
-                    initial={{ scale: 0, x: -10 }}
-                    animate={{ scale: 1, x: 0 }}
-                    className={`message-receiver flex-col text-black bg-gray-200 py-2 px-3 relative ${message.reactions.length > 0 && 'pb-4'}`}
-                    onMouseEnter={() => setIsMouseEntered(true)}
-                    onMouseLeave={() => setIsMouseEntered(false)}
-                    onContextMenu={handleContextMenu}
-                    ref={messageP_Ref}
-                >
-                    {/* Replied message */}
-                    {
-                        message.replyId &&
-                        <a href={`#${message.reply.id}`} className="flex flex-col gap-1 border-b border-slate-800 pb-2 mb-2">
-                            <div className="flex flex-col items-start cursor-pointer">
-                                <BsReply className='w-5 h-5 text-black'/>
-                                <div className="pl-4">
-                                    <MessagePReply text={message.reply.message} mentionCN={'text-black'} />
-                                </div>
-                            </div>
-                            <div className="pl-4">
-                                {message.reply.user}, 20/07/23
-                            </div>
-                        </a>
-                    }
-                    <MentionsInput
-                        style={MentionPStyle}
-                        placeholder='Tapez un message'
-                        value={message.message}
-                        readOnly
-                        className='w-full bg-transparent'
-                        onClick={() => setShowViewers(!showViewers)}
-                    >
-                        <Mention
-                            className='text-black '
-                            displayTransform={(id, display) => `@${display}`}
-                        />
-                    </MentionsInput>
 
-                    {/* Reaction emojis component */}
-                    <motion.div ref={emojiRef} className='hidden absolute -right-4 top-5 z-50 w-fit'
-                        style={isReacting.position}
-                        animate={{
-                            display: isReacting.state ? 'block' : 'hidden',
-                            scale: isReacting.state ? 1 : 0
-                        }}
+                <div className="flex items-start gap-2">
+                    <motion.div
+                        initial={{ scale: 0, x: -10 }}
+                        animate={{ scale: 1, x: 0 }}
+                        className={`message-receiver flex-col text-black dark:text-white bg-gray-200 dark:bg-gray-800 py-2 px-3 relative ${message.reactions.length > 0 && 'pb-4'}`}
+                        onMouseEnter={() => setIsMouseEntered(true)}
+                        onMouseLeave={() => setIsMouseEntered(false)}
+                        onContextMenu={handleContextMenu}
+                        ref={messageP_Ref}
                     >
-                        <EmojiSelector reactor={reactor} onClick={handleClickReaction} />
+                        {/* Replied message */}
+                        {
+                            message.replyId &&
+                            <a href={`#${message.reply.id}`} className="flex flex-col gap-1 border-b border-slate-800 pb-2 mb-2">
+                                <div className="flex flex-col items-start cursor-pointer">
+                                    <BsReply className='w-5 h-5 text-black dark:text-white'/>
+                                    <div className="pl-4">
+                                        <p className='chatbox-input italic' dangerouslySetInnerHTML={{__html: maximizeDisplay(message.reply.message)}} />
+                                    </div>
+                                </div>
+                                <div className="pl-4">
+                                    {message.reply.user}, 20/07/23
+                                </div>
+                            </a>
+                        }
+                        
+                        <div ref={messageRef} className="w-full bg-transparent chatbox-input"
+                            dangerouslySetInnerHTML={{__html: maximizeDisplay(message.message)}}
+                        />
+
+                        {/* Reaction emojis component */}
+                        <motion.div ref={emojiRef} className='hidden absolute -right-4 top-5 z-50 w-fit'
+                            style={isReacting.position}
+                            animate={{
+                                display: isReacting.state ? 'block' : 'hidden',
+                                scale: isReacting.state ? 1 : 0
+                            }}
+                        >
+                            <EmojiSelector reactor={reactor} onClick={handleClickReaction} />
+                        </motion.div>
                     </motion.div>
-                </motion.div>
+                    
+                    {/* Reaction Button */}
+                    <motion.button type='button' className='p-1 rounded-full right-0 -bottom-2 bg-transparent hover:text-slate-800 text-slate-500 dark:text-gray-400'
+                        // animate={{ scale: isMouseEntered ? 1 : 0 }}
+                        onClick={handleOpenReaction}
+                    >
+                        <BsEmojiSmile className='h-4 w-4' />
+                    </motion.button>
+                </div>
+
 
                 {/* ReactionEmoji lists in this message */}
                 {
@@ -362,14 +319,6 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
                     <b>Vu</b> par {message.seenBy.join(', ')}
                 </motion.div>
             </div>
-
-            {/* Reaction Button */}
-            <motion.button type='button' className='p-1 rounded-full right-0 -bottom-2 bg-white hover:text-slate-800 text-slate-500'
-                // animate={{ scale: isMouseEntered ? 1 : 0 }}
-                onClick={handleOpenReaction}
-            >
-                <BsEmojiSmile className='h-4 w-4' />
-            </motion.button>
 
             { contextMenu.show &&
                 <ContextMenu
@@ -459,14 +408,14 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
                 ref={fieldRef}
                 style={axesStyle()}
             >
-                <div className="flex flex-col w-full bg-white p-2 border-2 border-emerald-400 shadow-sm rounded-lg">
+                <div className="flex flex-col w-full bg-white dark:bg-gray-800 p-2 border-2 border-emerald-400 dark:border-gray-700 shadow-sm rounded-lg">
                     {
                         reactors.map((reactor, idx) => (
                             <div key={idx} className="flex items-center p-1 gap-1">
                                 <div className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 bg-white">
                                     <span className="font-bold text-emerald-600">{reactor.user.charAt(0)}</span>
                                 </div>
-                                <p className='text-sm'>{reactor.user}</p>
+                                <p className='text-sm text-black dark:text-white'>{reactor.user}</p>
                             </div>
                         ))
                     }
@@ -488,8 +437,8 @@ export const EmojiSelector = ({ reactor, onClick }) => {
     }
 
     return (
-        <div className='flex items-center gap-2 p-1 rounded-full border-2 border-slate-100 shadow bg-white'>
-            <button className="p-1 flex-shrink-0 rounded-full text-slate-400 hover:bg-slate-200"
+        <div className='flex items-center gap-2 p-1 rounded-full border-2 border-slate-100 shadow bg-white dark:bg-gray-800 dark:border-gray-700'>
+            <button className="p-1 flex-shrink-0 rounded-full text-slate-400 hover:bg-slate-200 dark:text-gray-400 dark:hover:bg-gray-700"
                 onClick={goToPrev}
             >
                 <BsChevronLeft />
@@ -497,7 +446,7 @@ export const EmojiSelector = ({ reactor, onClick }) => {
             <div ref={ref} className="max-w-[140px] scrollbar-hide overflow-x-auto scroll-smooth grid grid-flow-col gap-1 px-1 py-1 snaps-inline">
                 {emojis.map(code => <EmojiReaction key={code} active={reactor?.emoji === code} code={code} onClick={onClick} />)}
             </div>
-            <button className="p-1 flex-shrink-0 rounded-full text-slate-400 hover:bg-slate-200"
+            <button className="p-1 flex-shrink-0 rounded-full text-slate-400 hover:bg-slate-200 dark:text-gray-400 dark:hover:bg-gray-700"
                 onClick={goToNext}
             >
                 <BsChevronRight />
