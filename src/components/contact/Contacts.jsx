@@ -24,11 +24,11 @@ const Contacts = ({ visible, onOpenChat }) => {
     <>
         {/* search contacts */}
         <div className="px-2 my-2">
-            <div className="flex items-center gap-1 w-full bg-gray-100 rounded-full p-2 cursor-pointer group">
-                <RxMagnifyingGlass className='text-slate-600 group-hover:text-indigo-500' />
+            <div className="flex items-center gap-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full p-2 cursor-pointer group">
+                <RxMagnifyingGlass className='text-slate-600 dark:text-gray-500 group-hover:text-indigo-500' />
                 <input type="search"
                     placeholder='Chercher...'
-                    className='py-1 px-1 text-xs flex-grow bg-transparent placeholder:text-slate-600 outline-none focus:text-slate-800'
+                    className='py-1 px-1 text-xs flex-grow bg-transparent placeholder:text-slate-600 dark:placeholder:text-gray-500 outline-none focus:text-slate-800'
                     onFocus={() => setSearch(prev => ({ ...prev, focus: true }))}
                     onBlur={() => setSearch(prev => ({ ...prev, focus: false }))}
                     onChange={(e) => setSearch(prev => ({ ...prev, value: e.target.value }))}
@@ -41,8 +41,8 @@ const Contacts = ({ visible, onOpenChat }) => {
             {/* Conversations list */}
             <div className="scrollbox-content w-full">
                 <div className="w-full">
-                    <fieldset className='border-t border-gray-300'>
-                        <legend className='text-sm font-bold text-gray-700 my-2 flex items-center gap-1 px-1 ml-2'>
+                    <fieldset className='border-t border-gray-300 dark:border-gray-600'>
+                        <legend className='text-sm font-bold text-gray-700 dark:text-gray-400 my-2 flex items-center gap-1 px-1 ml-2'>
                             <span>Contacts</span>
                         </legend>
                     </fieldset>

@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;700;800&display=swap');
 * {
     font-family: 'Inter', sans-serif;
 }
@@ -11,13 +11,13 @@
         @apply max-w-[85%];
     }
     .message-sender {
-        @apply ml-auto w-fit text-sm rounded-xl rounded-tr py-2 px-3;
+        @apply ml-auto w-fit text-sm rounded-xl rounded-tr-none py-2 px-3;
     }
     .message-receiver {
-        @apply mr-auto w-fit whitespace-pre-wrap text-sm rounded-xl rounded-tl py-2 px-3;
+        @apply mr-auto w-fit whitespace-pre-wrap text-sm rounded-xl rounded-tl-none py-2 px-3;
     }
     .context-menu-item {
-        @apply flex gap-2 items-center justify-start w-full hover:bg-indigo-200 px-3 py-1 whitespace-nowrap;
+        @apply flex gap-2 items-center justify-start w-full hover:bg-indigo-200 dark:hover:bg-gray-600 px-3 py-1 whitespace-nowrap;
     }
     .snaps-inline {
         scroll-snap-type: inline mandatory;
@@ -61,6 +61,98 @@
     
     /* Handle */
     .scrollbox::-webkit-scrollbar-thumb {
-        @apply bg-gray-400 hover:bg-gray-500 rounded-[14px];
+        @apply bg-gray-400 dark:bg-gray-700 hover:bg-gray-500 dark:hover:bg-gray-600 rounded-[14px];
+    }
+
+    .chatbox-input img {
+        @apply w-fit inline ;
+    }
+    .mentioned_people {
+        @apply font-bold;
+    }
+    .at_mention {
+        @apply font-normal text-indigo-400 outline-none;
+    }
+
+    /* color theme */
+    ._default {
+        @apply bg-gradient-to-r from-emerald-500 to-emerald-700 dark:from-emerald-700 dark:to-emerald-800;
+    }
+    
+    ._sky {
+        @apply bg-gradient-to-r from-sky-500 to-sky-600 dark:from-sky-600 dark:to-sky-700;
+    }
+    
+    ._indigo {
+        @apply bg-gradient-to-r from-indigo-500 to-indigo-600 dark:from-indigo-700 dark:to-indigo-800;
+    }
+    
+    ._rose {
+        @apply bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-700 dark:to-rose-800;
+    }
+    
+    ._pink {
+        @apply bg-gradient-to-r from-pink-500 to-pink-600 dark:from-pink-700 dark:to-pink-800;
+    }
+    
+    ._violet {
+        @apply bg-gradient-to-r from-violet-500 to-violet-600 dark:from-violet-700 dark:to-violet-800;
+    }
+    
+    ._blue {
+        @apply bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-700 dark:to-blue-800;
+    }
+    
+    ._lime {
+        @apply bg-gradient-to-r from-lime-600 to-lime-700 dark:from-lime-700 dark:to-lime-800;
+    }
+
+    ._orange {
+        @apply bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-700 dark:to-orange-800;
+    }
+    
+    ._amber {
+        @apply bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-700 dark:to-amber-800;
+    }
+    ._yellow {
+        @apply bg-gradient-to-r from-yellow-500 to-yellow-500 dark:from-yellow-700 dark:to-yellow-800;
+    }
+    
+    ._g-pinkindigo {
+        @apply bg-gradient-to-r from-pink-500 to-indigo-600 dark:from-pink-700 dark:to-indigo-800;
+    }
+
+    ._g-yellowrose {
+        @apply bg-gradient-to-r from-yellow-500 to-rose-600 dark:from-yellow-600 dark:to-rose-800;
+    }
+    
+    ._g-rosepurple {
+        @apply bg-gradient-to-r from-rose-500 to-purple-600 dark:from-rose-700 dark:to-purple-800;
+    }
+
+    ._g-yellowteal {
+        @apply bg-gradient-to-r from-sky-500 to-emerald-600 dark:from-sky-500 dark:to-emerald-700;
+    }
+
+    ._g-skyblue {
+        @apply bg-gradient-to-r from-sky-500 to-indigo-600 dark:from-sky-500 dark:to-indigo-700;
+    }
+
+    /* typing ball */
+    .typing_ball {
+        @apply h-[8px] w-[8px] rounded-full bg-gray-400 dark:bg-gray-500 border border-slate-100 dark:border-gray-700;
+    }
+    aside {
+        @apply !bg-white dark:!bg-slate-900 !border-none
+    }
+    aside div > input {
+        @apply !text-black !bg-gray-200 placeholder:!text-slate-400 !border-gray-300
+        dark:!text-white dark:!bg-gray-950 dark:!border-gray-800;
+    }
+    aside li > div {
+        @apply !bg-transparent !text-gray-500 dark:!text-white;
+    }
+    aside li > div button:hover {
+        @apply !bg-red-400;
     }
 }

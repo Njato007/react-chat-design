@@ -72,7 +72,7 @@ const ScrollContainer = ({ children, haveNewMessage, dragActive, onScrollTop, on
   }
 
   return (
-    <div className="flex flex-grow relative overflow-hidden bg-white">
+    <div className="flex flex-grow relative overflow-hidden bg-white dark:bg-gray-950">
       <div className="flex flex-col flex-grow w-full scrollbox scrollbox_delayed overflow-x-hidden overflow-y-scroll"
         ref={outerDiv}
         onScroll={handleScroll}
@@ -89,12 +89,12 @@ const ScrollContainer = ({ children, haveNewMessage, dragActive, onScrollTop, on
         <div className="absolute right-6 bottom-8"
           style={{zIndex: showScrollButton ? 100 : -1000}}
         >
-            <button className="relative p-2 w-fit h-fit bg-slate-200 rounded-full cursor-pointer shadow"
+            <button className="relative p-2 w-fit h-fit bg-slate-200 dark:bg-gray-800 rounded-full cursor-pointer shadow"
                 onClick={handleScrollButtonClick}
                 style={{ opacity: showScrollButton ? 1 : 0 }}
             >
                 <span style={{ opacity: showNewMessages ? 1 : 0 }} className="text-xs rounded-full px-1 absolute -right-1 -top-1 text-white bg-emerald-600 h-fit w-fit">2</span>
-                <HiOutlineChevronDown className='w-6 h-6 text-slate-700' />
+                <HiOutlineChevronDown className='w-6 h-6 text-slate-700 dark:text-gray-400' />
             </button>
         </div>
         {

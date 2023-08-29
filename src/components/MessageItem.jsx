@@ -20,7 +20,7 @@ export const ContextMenu = ({ variant, x, y, closeContextMenu, onCopy, onTransfe
 
     return (
         <motion.div ref={ref} className='fixed z-[1000]' style={axesStyle()}>
-            <div className='flex flex-col text-sm bg-white shadow rounded' onClick={() => closeContextMenu()}>
+            <div className='flex flex-col text-sm bg-white dark:bg-gray-700 dark:text-gray-200 shadow rounded' onClick={() => closeContextMenu()}>
                 <button className='context-menu-item' onClick={() => onCopy()}>
                     <LuCopy />
                     Copier
@@ -67,7 +67,7 @@ export const ContextMenuChatItem = ({ isGroup, closeContextMenu, x, y, onMarkAsU
 
     return (
         <motion.div ref={ref} className='fixed z-[1000]' style={axesStyle()}>
-            <div className='flex flex-col text-sm bg-white shadow rounded' onClick={() => closeContextMenu()}>
+            <div className='flex flex-col text-sm bg-white dark:bg-gray-700 dark:text-gray-200 shadow rounded' onClick={() => closeContextMenu()}>
                 <button className='context-menu-item' onClick={() => onMarkAsUnread && onMarkAsUnread()}>
                     <GoUnread />
                     Marquer comme non lu
