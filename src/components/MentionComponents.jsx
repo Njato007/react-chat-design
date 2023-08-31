@@ -5,7 +5,7 @@ import { ContextMenu } from './MessageItem';
 import { Emoji } from 'emoji-picker-react';
 import { useClickAway } from '@uidotdev/usehooks';
 import { useResizeObserver } from '../utils/resizeObserver';
-import { maximizeDisplay, useAxesStyle, useOnScreen, useReactionAxes, useScrollAway, useTheme,  } from '../utils/tools';
+import { emojifyText, maximizeDisplay, minimize, trimString, useReactionAxes, useScrollAway, useTheme  } from '../utils/tools';
 import moment from '../utils/moment.cust';
 const initialContextMenu = {
     show: false,
@@ -21,7 +21,7 @@ const suggestions = [
 ];
 const urUser = 'sender'
 
-export const MessageSender = ({ message, onReply, onDelete, onUpdate, theme }) => {
+export const MessageSender = ({ message, onReply, onDelete, onUpdate, onTransfert, theme }) => {
 
     const [contextMenu, setContextMenu] = useState(initialContextMenu);
     const [reactionWidth, setReactionWidth] = useState(0);
@@ -45,13 +45,15 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, theme }) =
     }
     // transfert message
     const handleTransfert = () => {
-        alert('transfering message')
+        onTransfert && onTransfert ('transfering message')
     }
     // copy message
     const handleCopy = () => {
         // navigator.clipboard.writeText(message.message);
         const html = messageRef.current.innerHTML;
-        const text = messageRef.current.innerText;
+        const minimized = minimize(messageRef.current);
+        const trimed = trimString(minimized);
+        const text = emojifyText(trimed);
         const clipboardItem = new ClipboardItem({
             'text/html':  new Blob([html],
             { type: 'text/html' }),
@@ -98,7 +100,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, theme }) =
                             <div className="flex flex-col items-start cursor-pointer">
                                 <BsReply className='w-5 h-5 text-white'/>
                                 <div className="pl-4">
-                                    <p className='chatbox-input italic' dangerouslySetInnerHTML={{__html: maximizeDisplay(message.reply.message)}} />
+                                    <p className='chatbox-input italic' dangerouslySetInnerHTML={{__html: maximizeDisplay(emojifyText(message.reply.message))}} />
                                 </div>
                             </div>
                             <div className="pl-4">
@@ -108,7 +110,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, theme }) =
                     }
 
                     <div ref={messageRef} className="w-full bg-transparent chatbox-input"
-                        dangerouslySetInnerHTML={{__html: maximizeDisplay(message.message)}}
+                        dangerouslySetInnerHTML={{__html: maximizeDisplay(emojifyText(message.message))}}
                     />
                 </motion.div>
 
@@ -151,7 +153,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, theme }) =
     )
 }
 
-export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
+export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfert, theme }) => {
 
     const [isMouseEntered, setIsMouseEntered] = useState(false);
     const [isReacting, setIsReacting] = useState({
@@ -203,7 +205,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
     }
     // transfert message
     const handleTransfert = () => {
-        alert('transfering message')
+        onTransfert && onTransfert(message)
     }
     // copy message
     const handleCopy = () => {
@@ -265,7 +267,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
                                 <div className="flex flex-col items-start cursor-pointer">
                                     <BsReply className='w-5 h-5 text-black dark:text-white'/>
                                     <div className="pl-4">
-                                        <p className='chatbox-input italic' dangerouslySetInnerHTML={{__html: maximizeDisplay(message.reply.message)}} />
+                                        <p className='chatbox-input italic' dangerouslySetInnerHTML={{__html: maximizeDisplay(emojifyText(message.reply.message))}} />
                                     </div>
                                 </div>
                                 <div className="pl-4">
@@ -275,7 +277,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
                         }
                         
                         <div ref={messageRef} className="w-full bg-transparent chatbox-input"
-                            dangerouslySetInnerHTML={{__html: maximizeDisplay(message.message)}}
+                            dangerouslySetInnerHTML={{__html: maximizeDisplay(emojifyText(message.message))}}
                         />
 
                         {/* Reaction emojis component */}
@@ -286,7 +288,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread }) => {
                                 scale: isReacting.state ? 1 : 0
                             }}
                         >
-                            <EmojiSelector reactor={reactor} onClick={handleClickReaction} />
+                            <EmojiSelector reactor={reactor} onClick={handleClickReaction} theme={theme} />
                         </motion.div>
                     </motion.div>
                     
@@ -357,7 +359,7 @@ export const ReactionEmojiList = ({reactions, onClickReaction}) => {
     if (reactions.length === 0) return null;
 
     return (
-        <div className='w-full flex items-center px-2 flex-wrap gap-1'>
+        <div className='w-full flex items-center px-2 flex-wrap gap-1 justify-end'>
         { reactions && dummyReactions.map(reaction =>
             <ReactionItem key={reaction.emoji} emoji={reaction.emoji} reactors={reaction.reactors} onClick={onClickReaction}/>
         )}
@@ -398,7 +400,7 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            <Emoji unified={emoji} emojiStyle='google' size={20}/>
+            <Emoji unified={emoji} emojiStyle='google' size={22}/>
             {
                 reactors.length > 1 &&
                 <span className='text-sm text-slate-700 px-1'>{reactors.length}</span>
@@ -425,7 +427,7 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
     )
 }
 
-export const EmojiSelector = ({ reactor, onClick }) => {
+export const EmojiSelector = ({ reactor, onClick, theme }) => {
     const ref = useRef();
 
     const goToPrev = () => {
@@ -444,7 +446,7 @@ export const EmojiSelector = ({ reactor, onClick }) => {
                 <BsChevronLeft />
             </button>
             <div ref={ref} className="max-w-[140px] scrollbar-hide overflow-x-auto scroll-smooth grid grid-flow-col gap-1 px-1 py-1 snaps-inline">
-                {emojis.map(code => <EmojiReaction key={code} active={reactor?.emoji === code} code={code} onClick={onClick} />)}
+                {emojis.map(code => <EmojiReaction theme={theme} key={code} active={reactor?.emoji === code} code={code} onClick={onClick} />)}
             </div>
             <button className="p-1 flex-shrink-0 rounded-full text-slate-400 hover:bg-slate-200 dark:text-gray-400 dark:hover:bg-gray-700"
                 onClick={goToNext}
@@ -455,12 +457,12 @@ export const EmojiSelector = ({ reactor, onClick }) => {
     )
 }
 
-export const EmojiReaction = ({ code, active,  onClick }) => {
+export const EmojiReaction = ({ code, active,  onClick, theme }) => {
 
     return (
         <motion.div whileHover={{ y: 0, scale: 1.3, cursor: 'pointer', position: 'relative' }}
             className={`bg-transparent flex-shrink-0 max-w-[24px] min-w-[24px] py-1 snaps-inline--child border-b-2
-            ${active ? 'border-emerald-500' : 'border-transparent'}`}
+            ${active ? ` border-gray-600` : 'border-transparent'}`}
             onClick={() => onClick({ code: code, isRemoving: active})}
         >
             <Emoji emojiStyle='google' size={22} unified={code} />

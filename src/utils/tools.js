@@ -5,6 +5,7 @@ import { render } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { FiRefreshCw } from "react-icons/fi";
 import ReactDOMServer from 'react-dom/server';
+import emojilib from 'emojilib'
 import { v1 } from "uuid";
 
 export const useAxesStyle = (x, y) => {
@@ -275,21 +276,21 @@ export const insertPeopleAsElement = (ref, element) => {
   ref.current.focus();
 };
 
-export const insertEmojiElement = (ref, element) => {
+export const insertEmojiElement = (ref, { emoji, size}) => {
   const range = window.getSelection().getRangeAt(0);
-  const span = document.createElement('span');
-  span.className = 'emoji';
-  span.contentEditable = false;
-  span.style.userSelect = 'none'
-  const root = createRoot(span);
-  root.render(element);
-  
+  const img = document.createElement('img');
+  img.src = emoji.getImageUrl('google');
+  img.alt = emoji.name;
+  img.loading = 'eager';
+  img.className = '__EmojiPicker__ epr-emoji-img emoji';
+  img.contentEditable = true;
+
   range.deleteContents();
-  range.insertNode(span);
+  range.insertNode(img);
 
   // Move the caret position after the inserted element
   const newRange = document.createRange();
-  newRange.setStartAfter(span);
+  newRange.setStartAfter(img);
   newRange.collapse(true);
 
   const selection = window.getSelection();
@@ -349,15 +350,14 @@ export const minimize = (html) => {
   const container = document.createElement('div');
   container.innerHTML = html.innerHTML;
   // minimize emoji image
-  const images = container.querySelectorAll('span.emoji');
-  for (let spanImage of images) {
-    const image = spanImage.firstElementChild;
+  const images = container.querySelectorAll('img.emoji');
+  for (let image of images) {
     const splited = image.src.split('/');
     const unified = splited[splited.length - 1].split('.')[0];
-    spanImage.prepend();
+    image.prepend();
     const textNode = document.createTextNode(`[[:${unified}:]]`);
-    spanImage.before(textNode);
-    spanImage.remove();
+    image.before(textNode);
+    image.remove();
   }
   // minimize people mentioned
   const mentions = container.querySelectorAll('span.people');
@@ -381,15 +381,26 @@ export const minimize = (html) => {
   return container.innerHTML;
 }
 
-export const maximizeDisplay = (text) => {
+const emojiUrl = (unified) => {
+  return `https://cdn.jsdelivr.net/npm/emoji-datasource-google/img/google/64/${unified}.png`;
+}
+
+export const maximizeDisplay = (text, editable) => {
   // check emojis
+
   const regexEmoji = /\[\[:([^:]+):\]\]/;
   var newText = text;
   var matches = '';
   while ((matches = regexEmoji.exec(newText)) !== null) {
-    const emoji = <Emoji unified={matches[1]} emojiStyle="google" size={20} />
-    const emojiText = ReactDOMServer.renderToString(emoji);
-    newText = newText.replace(matches[0], emojiText);
+    const img = document.createElement('img');
+    const unified = matches[1];
+    img.src = emojiUrl(unified);
+    img.alt = unified;
+    img.loading = 'eager';
+    img.className = '__EmojiPicker__ epr-emoji-img emoji';
+    img.contentEditable = editable ?? false;
+    
+    newText = newText.replace(matches[0], img.outerHTML);
   }
 
   // check mention
@@ -436,5 +447,24 @@ export const insertLine = () => {
 }
 
 export const trimString = (string) => {
-  return string.trim().replace(/&nbsp;/g, '');
+  return string.trim().replace(/&nbsp;/g, ' ');
+}
+
+
+const EmojiSymbols = {
+  ':)': '[[:1f642:]]', // smile
+  '(:': '[[:1f643:]]', // smile reverse
+  ':d': '[[:1f601:]]', // showing teeth
+  ';)': '[[:1f609:]]', // winking eye
+  ':p': '[[:1f61b:]]', // tongue stuck out
+  ';p': '[[:1f61c:]]', // tongue stuck out with winking eye
+  '($)': '[[:1f911:]]', // stuck out tongue with dollar
+  ':\'(': '[[:1f972:]]', // sad
+  '&lt;3': '[[:2764-fe0f:]]' // heart (<3)
+}
+
+export const emojifyText = (text = '') => {
+  const splits = text.split(' ');
+  const emojified = splits.map(split => EmojiSymbols[split.toLowerCase()] ?? split);
+  return emojified.join(' ');
 }

@@ -61,7 +61,7 @@ const ChatItem = ({ i, isActive, onClose }) => {
                                 <span className='h-fit w-fit px-2 py-0 text-xxs text-white bg-rose-400 rounded-full'>2</span>
                             </div>
                         }
-                        <p className={`text-gray-500 dark:text-gray-400 text-xs line-clamp-1 ${i === 4 && 'font-bold'}`}>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
+                        <p className={`text-gray-700 dark:text-gray-300 text-sm line-clamp-1 ${i === 4 && 'font-bold'}`}>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
                     </div>
                 </div>
             </div>

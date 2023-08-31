@@ -40,10 +40,14 @@ export const ContextMenu = ({ variant, x, y, closeContextMenu, onCopy, onTransfe
                     Répondre
                 </button>
                 {
-                    variant === 'sender' && <button className='context-menu-item' onClick={() => onDelete()}>
-                        <BsTrash />
-                        Supprimer
-                    </button>
+                    variant === 'sender' && 
+                    <>
+                        <hr className='mt-2' />
+                        <button className='context-menu-item' onClick={() => onDelete()}>
+                            <BsTrash />
+                            Supprimer
+                        </button>
+                    </>
                 }
                 {
                     variant !== 'sender' && <button className='context-menu-item' onClick={() => onUnread && onUnread()}>
