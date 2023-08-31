@@ -168,13 +168,7 @@ const ChatInput = React.forwardRef((props, ref) => {
     const handleInputChange = (e) => {
         const value = e.target.innerHTML;
         setValue(value);
-        // props.onChange && 
-        // props.onChange(value);
         setIsFocus(true);
-
-        const minimizedText = minimize(e.target);
-
-        const max = maximizeDisplay(minimizedText)
 
         // show placeholder
         setShowPlaceholder(value.length === 0);
@@ -225,7 +219,7 @@ const ChatInput = React.forwardRef((props, ref) => {
                 </div>
             </motion.div>
 
-            <div className="relative w-full">
+            <div className="relative w-full flex">
                 {/* placeholder */}
                 {
                     (!isFocus && value.length === 0) &&

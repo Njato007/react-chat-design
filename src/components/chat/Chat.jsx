@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import EmojiPicker, { Emoji, EmojiStyle } from 'emoji-picker-react';
 import { motion, useInView } from 'framer-motion';
 import { MessageSender, MentionInput, MessageReceiver } from '../MentionComponents';
-import { MessagesData, RandomMessages, firstChar, getSelectionStart, groupByDate, insertElement, insertEmojiElement, insertNodeOverSelection, insertOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, setCaretPosition, trimString } from '../../utils/tools';
+import { MessagesData, RandomMessages, emojifyText, firstChar, getSelectionStart, groupByDate, insertElement, insertEmojiElement, insertNodeOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, minimize, trimString } from '../../utils/tools';
 import { PiImagesSquare } from 'react-icons/pi'
 import { v1 } from 'uuid'
 import moment from '../../utils/moment.cust';
@@ -19,6 +19,7 @@ import { PiMagnifyingGlassBold } from 'react-icons/pi';
 import ChatInput from '../ChatInput';
 import ThemeSelector from './ThemeSelector';
 import Typing, { UserIsTyping } from './Typing';
+import Transfert from '../Transfert';
 
 function Chat({ onCloseChat, chatId }) {
 
@@ -29,11 +30,11 @@ function Chat({ onCloseChat, chatId }) {
   const [lastPreviousMessage, setLastPreviousMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState(0);
   const initialState = {
     state: false,
     data: {}
   }
+  const [transfert, setTranfert] = useState(initialState);
   // theme (color & bg of chat)
   const [theme, setTheme] = useState('_default');
   const [showTheme, setShowTheme] = useState(false);
@@ -51,8 +52,12 @@ function Chat({ onCloseChat, chatId }) {
   const uploaderRef = useRef(null);
 
   const handleSendMessage = () => {
-    if (messageInputRef.current.textContent.trim().length === 0) return;
-    const message = trimString(messageInputRef.current.innerHTML);
+    if (messageInputRef.current.innerHTML.trim().length === 0 &&
+    !messageInputRef.current.innerHTML.includes('<img')) return;
+    const minimized = minimize(messageInputRef.current);
+    const trimed = trimString(minimized);
+    const message = trimed;
+    console.log(message)
     // reply message
     if (isReplying.state) {
       setMessages([...messages, {
@@ -152,22 +157,8 @@ function Chat({ onCloseChat, chatId }) {
   const handlePickEmoji = (selectedEmoji) => {
     const ref = messageInputRef.current;
     if (!ref) return;
-    const emoji = selectedEmoji.emoji;
     ref.focus();
-    const cursor = getSelectionStart(ref);
-    // get emoji outer html
-    const emojiText = ReactDomServer.renderToString(
-      <Emoji unified={selectedEmoji.unified} size={20} emojiStyle='google' />
-    )
-    const text = message.slice(0, cursor) + emojiText + message.slice(cursor);
-
-    insertEmojiElement(messageInputRef, <Emoji unified={selectedEmoji.unified} size={20} emojiStyle='google' />);
-
-
-    // setMessage(text);
-    setTimeout(() => {
-      // setCaretPosition(ref, cursor)
-    }, 100);
+    insertEmojiElement(messageInputRef, {emoji: selectedEmoji, size: 14});
   }
 
   // delete message 
@@ -190,13 +181,28 @@ function Chat({ onCloseChat, chatId }) {
     
   }
 
+  //transfert message 
+  const handleTransfertMessage = (transfertData) => {
+    console.log(transfertData)
+    setTranfert(false);
+  }
+  // open transfert message form
+  const handleOpenTransfert = (message) => {
+    // TODO
+    setTranfert({
+      state: true,
+      data: message
+    });
+
+  }
+
   // update message
   const handleUpdateMessage = (msg) => {
     // cancel reply while updating
     setIsReplying(initialState);
     setIsUpdating({ state: true, data: msg });
     // setMessage
-    setMessage(msg.message);
+    setMessage(maximizeDisplay(msg.message, true));
     // focus textarea
     // messageInputRef.current.containerElement.querySelector('textarea').focus();
   }
@@ -265,8 +271,8 @@ function Chat({ onCloseChat, chatId }) {
 
   // after adding emoji
   useEffect(() => {
-    // messageInputRef.current.containerElement.querySelector('textarea').selectionEnd = cursorPosition;
-  }, [cursorPosition]);
+    
+  }, []);
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 dark:bg-slate-900"
@@ -357,6 +363,7 @@ function Chat({ onCloseChat, chatId }) {
                             onDelete={handleDeleteMessage}
                             onReply={handleReplyMessage}
                             onUpdate={handleUpdateMessage}
+                            onTransfert={() => handleOpenTransfert(msg)}
                             theme={theme}
                           />
                           :
@@ -364,17 +371,19 @@ function Chat({ onCloseChat, chatId }) {
                             {/* Display not seen indicator */}
                             { !msg.isRead && 
                               <motion.fieldset
-                                className='border-t-2 border-emerald-400 my-4'
+                                className={`border-t-2 border-gray-300 dark:border-gray-700 my-4`}
                                 initial={{ y: -100, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
                               >
-                                <legend className='text-center text-xs px-3 text-emerald-400 font-semibold'>Nouveau message</legend>
+                                <legend className={`${theme} text-transparent bg-clip-text text-center text-sm px-3 py-2 font-bold`}>Nouveau message</legend>
                               </motion.fieldset>
                             }
                             <MessageReceiver message={msg}
                               onReact={handleReaction}
                               onReply={handleReplyMessage}
                               onUnread={handleUnreadMessageFromHere}
+                              onTransfert={() => handleOpenTransfert(msg)}
+                              theme={theme}
                             />
                           </>
                         }
@@ -402,7 +411,7 @@ function Chat({ onCloseChat, chatId }) {
         </div>
       </ScrollContainer>
 
-      <div className='flex flex-col items-center w-full p-3 gap-2 relative bg-gray-100 dark:bg-gray-950'>
+      <div className='flex flex-col items-center w-full p-3 gap-2 relative bg-gray-50 dark:bg-gray-950'>
         <div className={`bg-white dark:bg-gray-900 w-full max-w-6xl mx-auto flex-grow text-sm rounded-3xl ${showEmoji && 'rounded-t-lg rounded-tr-lg'} border border-gray-300 dark:border-gray-800 px-2 py-1 relative`}>
           {/* Emoji fields */}
           <motion.div className='w-full overflow-hidden hidden' animate={{
@@ -429,7 +438,7 @@ function Chat({ onCloseChat, chatId }) {
               <BsReply className='w-4 h-4 flex-shrink-0' />
               <div className="flex flex-col flex-grow">
                 <p className='line-clamp-3 font-normal chatbox-input'
-                  dangerouslySetInnerHTML={{__html: maximizeDisplay(isReplying.data.message)}}
+                  dangerouslySetInnerHTML={{__html: maximizeDisplay(emojifyText(isReplying.data.message))}}
                 />
                 <p className='text-slate-600 dark:text-gray-400'>
                   {isReplying.data.user}, 10/07/2023
@@ -471,15 +480,25 @@ function Chat({ onCloseChat, chatId }) {
             }
             {
               // message.trim().length > 0 &&
-              <button disabled={message.trim().length === -1}
-                className={`rounded-full font-bold text-black dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 p-2 disabled:cursor-not-allowed`}
+              <motion.button disabled={message.trim().length === -1}
+                whileHover={{ scale: 1.3 }}
+                className={`rounded-full ${theme} font-bold text-transparent bg-clip-text dark:hover:bg-gray-700 p-2 disabled:cursor-not-allowed`}
                 onClick={handleSendMessage} >
-                <BsFillSendFill className='h-5 w-5' />
-              </button>
+                {/* <BsFillSendFill className='h-5 w-5' /> */}
+                <i aria-hidden className='fa fa-paper-plane text-xl' />
+              </motion.button>
             }
           </div>
         </div>
       </div>
+      
+        <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: transfert.state ? [1.1, 1] : 0 }}
+              className="fixed inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm z-[1000]"
+          >
+              {transfert.state && <Transfert onTransfert={handleTransfertMessage} theme={theme} data={transfert.data} onClose={() => setTranfert(false)} />}
+          </motion.div>
     </div>
   );
 }

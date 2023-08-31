@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import React, { useState } from 'react'
-import { BiConversation, BiSearch } from 'react-icons/bi';
+import { BiConversation, BiGroup, BiSearch } from 'react-icons/bi';
 import { RxMagnifyingGlass } from 'react-icons/rx';
 import ChatItem from './ChatItem';
+import { AiOutlineUsergroupAdd } from 'react-icons/ai';
+import NewGroup from '../NewGroup';
 
 const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
     const initialSearch = {
@@ -11,11 +13,16 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
     }
     const [search, setSearch] = useState(initialSearch);
     const [activeChatId, setActiveChatId] = useState(null);
+    const [showGroupForm, setShowGroupForm] = useState(false);
 
     const handleOpenChat = (id) => {
         setActiveChatId(id);
         onOpenChat({state: true, chatId: id})
     }
+
+    const handleCreateGroup = (data) => {
+        alert(data.name)
+    }   
 
     if (!visible) return <></>;
 
@@ -33,6 +40,15 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
                     onChange={(e) => setSearch(prev => ({ ...prev, value: e.target.value }))}
                 />
             </div>
+        </div>
+        {/* New groups */}
+        <div className="flex items-center justify-start px-2">
+            <button className='text-black dark:text-white text-xs font-semibold p-2 bg-transparent dark:hover:bg-gray-800 rounded flex gap-2 items-center'
+                onClick={() => setShowGroupForm(true)}
+            >
+                <AiOutlineUsergroupAdd className='w-6 h-6' />
+                Nouveau groupe
+            </button>
         </div>
 
         {/* Chats */}
@@ -95,6 +111,13 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
                 </div>
             </div>
         </div>
+        <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: showGroupForm ? [1.1, 1] : 0 }}
+            className="fixed inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm z-[1000]"
+        >
+            {showGroupForm && <NewGroup onClose={() => setShowGroupForm(false)} onCreate={handleCreateGroup} />}
+        </motion.div>
     </>
   )
 }

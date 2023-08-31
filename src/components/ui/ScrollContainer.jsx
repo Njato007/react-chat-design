@@ -72,7 +72,7 @@ const ScrollContainer = ({ children, haveNewMessage, dragActive, onScrollTop, on
   }
 
   return (
-    <div className="flex flex-grow relative overflow-hidden bg-white dark:bg-gray-950">
+    <div className="flex flex-grow relative overflow-hidden bg-gray-50 dark:bg-gray-950">
       <div className="flex flex-col flex-grow w-full scrollbox scrollbox_delayed overflow-x-hidden overflow-y-scroll"
         ref={outerDiv}
         onScroll={handleScroll}

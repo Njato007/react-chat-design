@@ -4,15 +4,13 @@ import React from 'react'
 const ContactItem = ({ openChat, contactId }) => {
 
     const handleOpenChat = () => {
-        openChat(contactId)
+        openChat && openChat(contactId)
     }
 
     return (
         <motion.div
-            className="flex items-center gap-2 p-2 px-3 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900"
+            className="flex items-center gap-2 p-2 px-3 rounded-lg hover:bg-indigo-200 dark:hover:bg-sky-950"
             onClick={handleOpenChat}
-            initial={{ x: -100 }}
-            animate={{ x: 0 }}
         >
             {/* Profile */}
             <div className="relative flex-shrink-0 w-10 h-10 bg-indigo-100 text-indigo-500 border-2 border-indigo-300 rounded-full flex items-center justify-center">
