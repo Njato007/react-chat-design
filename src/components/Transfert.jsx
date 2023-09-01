@@ -25,7 +25,7 @@ const Transfert = ({ data, onClose, onTransfert, theme }) => {
     }
 
     return (
-        <div className={`${theme} w-full max-w-xl p-[0px] rounded-lg`}>
+        <div className={`${theme} w-full max-w-lg p-[0px] rounded-lg`}>
             <div className=' bg-white dark:bg-slate-800 p-4 shadow-md rounded-lg'>
                 <div className="flex items-center justify-between pb-2 border-b border-gray-300 dark:border-gray-700">
                     <h1 className='text-gray-700 dark:text-gray-200 flex gap-2'>
@@ -40,15 +40,19 @@ const Transfert = ({ data, onClose, onTransfert, theme }) => {
                 </div>
                 <div className="px-2">
                     <div className="flex flex-col my-2">
-                        <label htmlFor="" className='text-black dark:text-white text-xs py-1'>Séléctionner des contacts</label>
+                        <label htmlFor="search" className='text-black dark:text-white text-xs py-1'>
+                            <li className="list-disc">Séléctionner des contacts ou des groupes</li>
+                        </label>
                         <div className="p-2 rounded-lg border bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-700">
                             <div className="flex items-center p-2 gap-2">
                                 <PiMagnifyingGlass className='flex-shrink-0 text-gray-400'/>
                                 <input
+                                    id='search'
                                     type="search"
                                     onChange={(e) => setSearch(e.currentTarget.value)}
                                     className='text-sm text-black dark:text-white flex-grow bg-transparent outline-none'
                                     placeholder='Chercher...'
+                                    autoComplete='new-password'
                                 />
                             </div>
                             <div className="flex flex-col overflow-y-auto h-fit max-h-[230px] py-1">
@@ -61,7 +65,7 @@ const Transfert = ({ data, onClose, onTransfert, theme }) => {
                                                 <AiOutlineCheckSquare className={`w-6 h-6 text-emerald-500`}/>
                                             </div> */}
 
-                                            <ContactItem />
+                                            <ContactItem data={people} />
                                             {
                                                 people.indexOf(id) === -1 ?
                                                 <button

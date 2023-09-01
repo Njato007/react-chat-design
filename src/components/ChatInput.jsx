@@ -8,12 +8,12 @@ import ContactItem from './contact/ContactItem';
 const ChatInput = React.forwardRef((props, ref) => {
     const [showMentionComp, setShowMentionComp] = useState(false);
     const mentionList = ['someone', 'anyone', 'everyone'];
-    const [mentions, setMentions] = useState(mentionList);
+    const [mentions, setMentions] = useState(props.people);
     const [value, setValue] = useState('');
     const [text, setText] = useState(props.value);
     const [isFocus, setIsFocus] = useState(false);
     const [showPlaceholder, setShowPlaceholder] = useState(false);
-    const [activeMention, setActiveMention] = useState(mentionList[0]);
+    const [activeMention, setActiveMention] = useState(null);
 
     useEffect(() => {
         setText(props.value);
@@ -24,13 +24,20 @@ const ChatInput = React.forwardRef((props, ref) => {
         setValue(props.value);
     }, [props.value]);
 
+    // people change
+    useEffect(() => {
+        const firstPeople = props.people[0];
+        if (firstPeople) {
+            setActiveMention(firstPeople);
+        }
+        setMentions(props.people)
+    }, [props.people]);
+
     // handle when element has been inserted in the div content editable
     useEffect(() => {
         const observer = new MutationObserver(mutations => {
           mutations.forEach(mutation => {
             if (mutation.addedNodes.length > 0) {
-            //   const insertedElement = mutation.addedNodes[0];
-            //   console.log('Element inserted:', insertedElement);
               setValue(minimize(ref.current.innerHTML));
             }
           });
@@ -72,7 +79,7 @@ const ChatInput = React.forwardRef((props, ref) => {
         if (keyPressed === '@' || keyPressed === 50) {
             removeMentionIfExists();
             // set mentions list to initial
-            setMentions(mentionList);
+            setMentions(props.people);
             event.preventDefault();
             const span = insertMentionElement();
             span.focus();
@@ -104,8 +111,10 @@ const ChatInput = React.forwardRef((props, ref) => {
             }
             // Pressing Enter
             if (keyPressed === 'Enter' || keyPressed === 13) {
-                event.preventDefault();
-                handlePickMention(activeMention);
+                if (mentions.length > 0) {
+                    event.preventDefault();
+                        handlePickMention(activeMention);
+                }
             }
         }
 
@@ -158,7 +167,7 @@ const ChatInput = React.forwardRef((props, ref) => {
         if (mention) {
             mention.remove();
             // insert the people mentioned
-            insertPeopleAsElement(ref, <span id={suggestion} className='mentioned_people'>@{suggestion}</span>);
+            insertPeopleAsElement(ref, <span id={suggestion.id} className='mentioned_people'>@{suggestion.firstname}</span>);
             // add space in the end
             insertTextNode(ref, '&nbsp;');
         }
@@ -185,7 +194,7 @@ const ChatInput = React.forwardRef((props, ref) => {
                 }
                 // start filtering suggestions
                 const key = mention.textContent.replace('@', '');
-                const filteredMentions = mentionList.filter(item => item.includes(key));
+                const filteredMentions = props.people.filter(item => item.firstname.includes(key));
                 setMentions(filteredMentions);
                 // set default active mention as the first filtered item
                 if (filteredMentions.length > 0) {
@@ -209,10 +218,10 @@ const ChatInput = React.forwardRef((props, ref) => {
                 {
                     mentions.map((mention, i) => (
                         <div key={i}
-                            className={`${mention === activeMention && 'dark:bg-gray-600 bg-slate-300'} dark:hover:bg-gray-600 hover:bg-slate-300 p-0 cursor-pointer select-none`}
+                            className={`${mention.id === activeMention.id && 'dark:bg-gray-600 bg-slate-300'} dark:hover:bg-gray-600 hover:bg-slate-300 p-0 cursor-pointer select-none`}
                             onClick={() => handlePickMention(mention)}
                         >
-                            <ContactItem contactId={i} openChat={() => ''} />
+                            <ContactItem data={mention} contactId={i} openChat={() => ''} />
                         </div>
                     ))
                 }

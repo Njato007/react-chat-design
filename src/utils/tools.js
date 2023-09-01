@@ -124,9 +124,37 @@ export const RandomMessages = (d) => Array.from({length: 10}, (_, index) => {
     reactions: [],
     createdAt: addDays(new Date(), 0 - d),
     isRead: true,
+    isGroup: false,
     seenBy: ["receiver"]
   })
 });
+
+export const RandomUsers = () => {
+  const names = [ 'Jimmy', 'Foggy', 'Soap', 'Yury', 'Eva', 'Clark', 'Johnson', 'Milles', 'Deepanchu' ];
+  return names.map(name => ({
+    id: v1(),
+    firstname: name,
+    lastname: name.charAt(name.length - 1).toUpperCase() + '.',
+    image: ''
+  }))
+}
+const users = RandomUsers();
+
+export const RandomConversations = () => {
+  return users.map(user => ({
+    id: v1(),
+    name: `${user.firstname} ${user.lastname}`,
+    isGroup: false,
+    users: [user.id],
+    lastMessage: '',
+    lastUpdate: addDays(new Date(), -1)
+  }))
+}
+
+export const getChatData = {
+  conversations: RandomConversations(),
+  users: users
+} 
 
 
 export function useScrollAway(ref, cb) {
@@ -364,7 +392,8 @@ export const minimize = (html) => {
   for (let people of mentions) {
     const mention = people.firstElementChild;
     const content = mention.textContent;
-    const textNode = document.createTextNode(`{{${content}}}`);
+    const id = mention.id;
+    const textNode = document.createTextNode(`{{${content}_${id}}}`);
     people.before(textNode)
     people.remove();
   }
@@ -406,7 +435,10 @@ export const maximizeDisplay = (text, editable) => {
   // check mention
   const regexTag =/\{\{@([^:]+)\}\}/
   while ((matches = regexTag.exec(newText)) !== null) {
-    const tag = <span id={matches[1]} contentEditable={false} className="mentioned_people">@{matches[1]}</span>
+    const match = matches[1];
+    const content = match.split('_')[0];
+    const id = match.split('_')[1];
+    const tag = <span id={id} contentEditable={false} className="mentioned_people">@{content}</span>
     const tagText = ReactDOMServer.renderToString(tag);
     newText = newText.replace(matches[0], tagText);
   }
@@ -468,3 +500,6 @@ export const emojifyText = (text = '') => {
   const emojified = splits.map(split => EmojiSymbols[split.toLowerCase()] ?? split);
   return emojified.join(' ');
 }
+
+
+export const sortByLastUpdate = (array) => array.sort((a, b) => new Date(b.lastUpdate) - new Date(a.lastUpdate));

@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BiConversation, BiGroup, BiSearch } from 'react-icons/bi';
 import { RxMagnifyingGlass } from 'react-icons/rx';
 import ChatItem from './ChatItem';
 import { AiOutlineUsergroupAdd } from 'react-icons/ai';
 import NewGroup from '../NewGroup';
+import { RandomConversations, getChatData, sortByLastUpdate } from '../../utils/tools';
+import { v1 } from 'uuid';
 
 const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
     const initialSearch = {
@@ -14,6 +16,7 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
     const [search, setSearch] = useState(initialSearch);
     const [activeChatId, setActiveChatId] = useState(null);
     const [showGroupForm, setShowGroupForm] = useState(false);
+    const [conversations, setConversations] = useState(getChatData.conversations);
 
     const handleOpenChat = (id) => {
         setActiveChatId(id);
@@ -21,8 +24,25 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
     }
 
     const handleCreateGroup = (data) => {
-        alert(data.name)
-    }   
+        setConversations(prev => [...prev, {
+            id: v1(),
+            isGroup: true,
+            lastMessage: '',
+            name: data.name,
+            users: data.members,
+            lastUpdate: new Date(),
+        }]);
+        setShowGroupForm(false);
+    }
+
+    const filter = (data) => {
+        return search.value.length === 0 ? [] : data.filter(prev => prev.name.match(search.value));
+    }
+
+    // Fetch chat
+    useEffect(() => {
+        // setConversations();
+    }, []);
 
     if (!visible) return <></>;
 
@@ -34,7 +54,7 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
                 <RxMagnifyingGlass className='text-slate-600 dark:text-gray-500 group-hover:text-indigo-500' />
                 <input type="search"
                     placeholder='Contacts, groupes'
-                    className='py-1 px-1 text-xs flex-grow bg-transparent placeholder:text-slate-600 dark:placeholder:text-gray-500 outline-none focus:text-slate-800'
+                    className='py-1 px-1 text-xs text-black dark:text-white flex-grow bg-transparent placeholder:text-slate-600 dark:placeholder:text-gray-500 outline-none focus:text-slate-800'
                     onFocus={() => setSearch(prev => ({ ...prev, focus: true }))}
                     onBlur={() => setSearch(prev => ({ ...prev, focus: false }))}
                     onChange={(e) => setSearch(prev => ({ ...prev, value: e.target.value }))}
@@ -69,13 +89,16 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
                             <span>Résultats de recherche</span>
                         </legend>
                     </fieldset>
-                    <div className="flex flex-col gap-1 pb-2">
+                    <div className="flex flex-col gap-1 pb-2 py-2 bg-gray-200 dark:bg-gray-950">
                         {
-                            Array.from({ length: 1 }, (_, i) => (
+                            filter(conversations).length <= 0 ?
+                                <p className='text-sm text-gray-600 dark:text-gray-400 px-2 text-center'>Aucunes conversations trouvées</p>
+                            : filter(conversations).map((conv, i) => (
                                 <div key={i}
-                                    onClick={() => handleOpenChat(i)}
+                                    onClick={() => handleOpenChat(conv.id)}
                                 >
                                     <ChatItem i={i}
+                                        data={conv}
                                         isActive={activeChatId === i}
                                         onClose={onCloseChat}
                                     />
@@ -96,11 +119,13 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
                     </fieldset>
                     <div className="flex flex-col gap-1 pb-2">
                         {
-                            Array.from({ length: 10 }, (_, i) => (
+                            sortByLastUpdate(conversations)
+                            .map((conv, i) => (
                                 <div key={i}
-                                    onClick={() => handleOpenChat(i)}
+                                    onClick={() => handleOpenChat(conv.id)}
                                 >
                                     <ChatItem i={i}
+                                        data={conv}
                                         isActive={activeChatId === i}
                                         onClose={onCloseChat}
                                     />

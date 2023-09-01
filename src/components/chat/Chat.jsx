@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import EmojiPicker, { Emoji, EmojiStyle } from 'emoji-picker-react';
 import { motion, useInView } from 'framer-motion';
 import { MessageSender, MentionInput, MessageReceiver } from '../MentionComponents';
-import { MessagesData, RandomMessages, emojifyText, firstChar, getSelectionStart, groupByDate, insertElement, insertEmojiElement, insertNodeOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, minimize, trimString } from '../../utils/tools';
+import { MessagesData, RandomMessages, emojifyText, firstChar, getChatData, getSelectionStart, groupByDate, insertElement, insertEmojiElement, insertNodeOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, minimize, trimString } from '../../utils/tools';
 import { PiImagesSquare } from 'react-icons/pi'
 import { v1 } from 'uuid'
 import moment from '../../utils/moment.cust';
@@ -47,6 +47,16 @@ function Chat({ onCloseChat, chatId }) {
 
   //trigger hooks
   const [hasNewMessage, setHasNewMessage] = useState(false);
+
+  const [people, setPeople] = useState([]);
+
+  useEffect(() => {
+    const users = getChatData.users;
+    const conv = getChatData.conversations.find(c => c.id === chatId);
+    if (!conv) return;
+    const peopleSuggestions = conv.users.map(userId => users.find(user => user.id === userId))
+    setPeople(peopleSuggestions);
+  }, [chatId]);
 
   const messageInputRef = useRef();
   const uploaderRef = useRef(null);
@@ -265,7 +275,7 @@ function Chat({ onCloseChat, chatId }) {
   // hooks to fetch message at first render
   useEffect(() => {
     if (!chatId) return;
-    setMessages(RandomMessages(chatId + 1));
+    // setMessages(RandomMessages(chatId + 1));
     // setMessages(MessagesData);
   }, [chatId])
 
@@ -470,7 +480,7 @@ function Chat({ onCloseChat, chatId }) {
             }
 
             {/* <TextInput mentionData={mentionData} /> */}
-            <ChatInput value={message} ref={messageInputRef} onChange={setMessage} onSubmit={handleSendMessage} />
+            <ChatInput value={message} ref={messageInputRef} onChange={setMessage} onSubmit={handleSendMessage} people={people} />
 
             {
               isUpdating.state &&
