@@ -7,6 +7,7 @@ import { AiOutlineUsergroupAdd } from 'react-icons/ai';
 import NewGroup from '../NewGroup';
 import { RandomConversations, getChatData, sortByLastUpdate } from '../../utils/tools';
 import { v1 } from 'uuid';
+import { getChats, session } from '../../utils/func';
 
 const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
     const initialSearch = {
@@ -16,22 +17,23 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
     const [search, setSearch] = useState(initialSearch);
     const [activeChatId, setActiveChatId] = useState(null);
     const [showGroupForm, setShowGroupForm] = useState(false);
-    const [conversations, setConversations] = useState(getChatData.conversations);
+    const [chats, setChats] = useState([]);
+    const activeUser = session.user();
 
-    const handleOpenChat = (id) => {
-        setActiveChatId(id);
-        onOpenChat({state: true, chatId: id})
+    const handleOpenChat = (chat) => {
+        setActiveChatId(chat.id);
+        onOpenChat({state: true, chat: chat})
     }
 
     const handleCreateGroup = (data) => {
-        setConversations(prev => [...prev, {
-            id: v1(),
-            isGroup: true,
-            lastMessage: '',
-            name: data.name,
-            users: data.members,
-            lastUpdate: new Date(),
-        }]);
+        // setConversations(prev => [...prev, {
+        //     id: v1(),
+        //     isGroup: true,
+        //     lastMessage: '',
+        //     name: data.name,
+        //     users: data.members,
+        //     lastUpdate: new Date(),
+        // }]);
         setShowGroupForm(false);
     }
 
@@ -41,7 +43,11 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
 
     // Fetch chat
     useEffect(() => {
-        // setConversations();
+        getChats().then(res => {
+            if (res.status === 200) {
+                setChats(res.data);
+            }
+        })
     }, []);
 
     if (!visible) return <></>;
@@ -91,16 +97,17 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
                     </fieldset>
                     <div className="flex flex-col gap-1 pb-2 py-2 bg-gray-200 dark:bg-gray-950">
                         {
-                            filter(conversations).length <= 0 ?
+                            filter(chats).length <= 0 ?
                                 <p className='text-sm text-gray-600 dark:text-gray-400 px-2 text-center'>Aucunes conversations trouvées</p>
-                            : filter(conversations).map((conv, i) => (
+                            : filter(chats).map((chat, i) => (
                                 <div key={i}
-                                    onClick={() => handleOpenChat(conv.id)}
+                                    onClick={() => handleOpenChat(chat)}
                                 >
                                     <ChatItem i={i}
-                                        data={conv}
+                                        data={chat}
                                         isActive={activeChatId === i}
                                         onClose={onCloseChat}
+                                        activeUser={activeUser}
                                     />
                                 </div>
                             ))
@@ -119,15 +126,16 @@ const Conversations = ({ visible, onOpenChat, onCloseChat }) => {
                     </fieldset>
                     <div className="flex flex-col gap-1 pb-2">
                         {
-                            sortByLastUpdate(conversations)
-                            .map((conv, i) => (
+                            sortByLastUpdate(chats)
+                            .map((chat, i) => (
                                 <div key={i}
-                                    onClick={() => handleOpenChat(conv.id)}
+                                    onClick={() => handleOpenChat(chat)}
                                 >
                                     <ChatItem i={i}
-                                        data={conv}
+                                        data={chat}
                                         isActive={activeChatId === i}
                                         onClose={onCloseChat}
+                                        activeUser={activeUser}
                                     />
                                 </div>
                             ))

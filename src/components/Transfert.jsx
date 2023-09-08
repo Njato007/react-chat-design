@@ -1,28 +1,44 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AiOutlineUserAdd, AiOutlineUserDelete } from 'react-icons/ai';
 import { MdClose } from 'react-icons/md';
 import { PiMagnifyingGlass, PiShareFatLight } from 'react-icons/pi'
 import ContactItem from './contact/ContactItem';
 import { BsCheck, BsCheckLg } from 'react-icons/bs';
+import { getChatData } from '../utils/tools';
 
 const Transfert = ({ data, onClose, onTransfert, theme }) => {
-    const [people, setPeople] = useState([]);
+    const [contacts, setContacts] = useState([]);
     const [search, setSearch] = useState('');
+    const [selectedContacts, setSelectedContacts] = useState([]);
 
-    const handleAddPeople = (people) => {
-        setPeople(prev => [...prev, people]);
+    // Select people
+    const handleAddContact = (contact) => {
+        setSelectedContacts(prev => [...prev, contact]);
     }
 
-    const handleRemovePeople = (people) => {
-        setPeople(prev => prev.filter(p => p !== people));
+    // Remove selected
+    const handleRemoveContact = (contactId) => {
+        setSelectedContacts(prev => prev.filter(Id => Id !== contactId));
     }
 
     const handleTransfertMessage = () => {
         onTransfert && onTransfert({
-            people: people,
+            people: selectedContacts,
             data: data
         });
     }
+
+    const filter = (data) => {
+        const key = search.toLowerCase();
+        return data.filter(item => {
+            const fullName = `${item.firstname} ${item.lastname}`;
+            return fullName.toLowerCase().includes(key);
+        });
+    }
+    
+    useEffect(() => {
+        setContacts(getChatData.users)
+    }, []);
 
     return (
         <div className={`${theme} w-full max-w-lg p-[0px] rounded-lg`}>
@@ -57,7 +73,7 @@ const Transfert = ({ data, onClose, onTransfert, theme }) => {
                             </div>
                             <div className="flex flex-col overflow-y-auto h-fit max-h-[230px] py-1">
                                 {
-                                    Array.from({length: 10}, (_, i) => i + 1).map(id => (
+                                    filter(contacts).map((contact, id) => (
                                         <div key={id}
                                             className='flex items-center gap-0 pr-3 hover:bg-indigo-200 dark:hover:bg-sky-950'
                                         >
@@ -65,18 +81,18 @@ const Transfert = ({ data, onClose, onTransfert, theme }) => {
                                                 <AiOutlineCheckSquare className={`w-6 h-6 text-emerald-500`}/>
                                             </div> */}
 
-                                            <ContactItem data={people} />
+                                            <ContactItem data={contact} />
                                             {
-                                                people.indexOf(id) === -1 ?
+                                                selectedContacts.indexOf(contact.id) === -1 ?
                                                 <button
                                                     className='ml-auto flex items-center gap-2 text-xs font-semibold border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-900 text-gray-200 dark:text-white p-2 rounded-lg'
-                                                    onClick={() => handleAddPeople(id)}
+                                                    onClick={() => handleAddContact(contact.id)}
                                                 >
                                                     <BsCheck  className='w-6 h-6 opacity-0'/>
                                                 </button> :
                                                 <button
                                                     className={`ml-auto flex items-center gap-2 text-xs font-semibold ${theme} p-2 rounded-lg text-white`}
-                                                    onClick={() => handleRemovePeople(id)}
+                                                    onClick={() => handleRemoveContact(contact.id)}
                                                 >
                                                     <BsCheckLg  className='w-6 h-6'/>
                                                 </button>

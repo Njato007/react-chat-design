@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion'
 import React, { useEffect, useState } from 'react'
 import { ContextMenuChatItem } from '../MessageItem'
+import { getTag, profileColor } from '../../utils/tools';
+import { getLastConversation, getUser } from '../../utils/func';
 
-const ChatItem = ({ i, data, isActive, onClose }) => {
+const ChatItem = ({ i, data, isActive, onClose, activeUser }) => {
     const initialContextValue = {
         state: false,
         x: 0,
@@ -11,6 +13,8 @@ const ChatItem = ({ i, data, isActive, onClose }) => {
 
     const [showContext, setShowContext] = useState(initialContextValue);
     const [tag, setTag] = useState('');
+    const [userName, setUserName] = useState('');
+    const [lastMessage, setLastMessage] = useState('');
     const handleContextMenu = (e) => {
         e.preventDefault();
         const { pageY, pageX } = e;
@@ -43,8 +47,25 @@ const ChatItem = ({ i, data, isActive, onClose }) => {
     useEffect(() => {
         if (data) {
             // Split space and get first char of splited to display
-            const splited = data.name.split(' ');
-            setTag(`${splited[0].charAt(0)}${splited[1] ? splited[1].charAt(0) : ''}`);
+            if (!data.isGroup) {
+                // get the id of the another user
+                const anotherUserId = data.users.filter(userId => userId !== activeUser.id)[0];
+                getUser(anotherUserId).then(res => {
+                    if (res.status === 200) {
+                        const user = res.data;
+                        setTag(`${user.firstname.charAt(0)}${user.lastname.charAt(0)}`);
+                        setUserName(`${user.firstname} ${user.lastname}`)
+                    }
+                })
+            } else {
+                setTag(getTag(data.name));
+            }
+            // set last message
+            getLastConversation(data.id).then(res => {
+                if (res.status === 200 && res.data.length > 0) {
+                    setLastMessage(res.data[0].message);
+                }
+            })
         }
     }, [data])
 
@@ -56,7 +77,7 @@ const ChatItem = ({ i, data, isActive, onClose }) => {
             {/* Profile & last message */}
             <div className="flex items-center gap-2">
                 {/* Profile */}
-                <div className="relative flex-shrink-0 w-10 h-10 bg-indigo-100 text-indigo-500 border-2 border-indigo-300 rounded-full flex items-center justify-center">
+                <div className={`relative flex-shrink-0 w-10 h-10 ${profileColor(tag)} rounded-full flex items-center justify-center`}>
                     <span className="font-bold text-base">
                         {tag}
                     </span>
@@ -69,7 +90,7 @@ const ChatItem = ({ i, data, isActive, onClose }) => {
                     }
                 </div>
                 <div className="flex flex-col justify-between gap-1">
-                    <h1 className='text-sm font-bold text-gray-600 dark:text-gray-300'>{data?.name}</h1>
+                    <h1 className='text-sm font-bold text-gray-600 dark:text-gray-300 line-clamp-1'>{data.isGroup ? data?.name : userName}</h1>
                     <div className="flex gap-1">
                         {
                             i === 4 &&
@@ -77,7 +98,9 @@ const ChatItem = ({ i, data, isActive, onClose }) => {
                                 <span className='h-fit w-fit px-2 py-0 text-xxs text-white bg-rose-400 rounded-full'>2</span>
                             </div>
                         }
-                        <p className={`text-gray-700 dark:text-gray-300 text-sm line-clamp-1 ${i === 4 && 'font-bold'}`}>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
+                        <p className={`text-gray-700 dark:text-gray-300 text-sm line-clamp-1 ${i === 4 && 'font-bold'}`}>
+                            {lastMessage}
+                        </p>
                     </div>
                 </div>
             </div>

@@ -41,7 +41,7 @@ export const useReactionAxes = (x, y) => {
 }
 
 
-export const orderByDateFunc = (a, b) => a.createdAt - b.createdAt;
+export const orderByDateFunc = (a, b) => new Date(b.date) - new Date(a.date);
 
 // Function to scroll to the bottom of the container
 export const scrollToBottom = (containerRef) => {
@@ -51,10 +51,15 @@ export const scrollToBottom = (containerRef) => {
   }
 };
 
+export const includeReplies = (msgs) => {
+  return msgs.map(m => m.replyId ?
+      ({...m, reply: msgs.find(ms => ms.id === m.replyId)}) : m)
+}
+
 export const groupByDate = (data) => {
   // this gives an object with dates as keys
   const groups = data.reduce((groups, message) => {
-    const time = message.createdAt.toISOString()
+    const time = new Date(message.createdAt).toISOString()
     const date = time.split('T')[0];
     if (!groups[date]) {
       groups[date] = [];
@@ -70,7 +75,8 @@ export const groupByDate = (data) => {
       messages: groups[date]
     };
   });
-
+  groupArrays.sort(orderByDateFunc);
+  
   return groupArrays;
 }
 
@@ -503,3 +509,32 @@ export const emojifyText = (text = '') => {
 
 
 export const sortByLastUpdate = (array) => array.sort((a, b) => new Date(b.lastUpdate) - new Date(a.lastUpdate));
+
+
+export const profileColor = (char = '') => {
+  const charCode1 = char.charCodeAt(0);
+  const charCode2 = char.charCodeAt(1);
+
+  const colors = [
+    'prof_red',
+    'prof_blue',
+    'prof_sky',
+    'prof_green',
+    'prof_indigo',
+    'prof_orange',
+    'prof_purple',
+    'prof_violet',
+    'prof_yellow',
+    'prof_gray',
+  ]
+
+  const colorIndex = (charCode1 * (charCode2 || 1)) % colors.length;
+  return colors[colorIndex];
+}
+
+export const getTag = (fullname) => {
+  if (!fullname) return '';
+  const splited = fullname.split(' ');
+  const tag = `${splited[0].charAt(0)}${splited[1] ? splited[1].charAt(0) : ''}`;
+  return tag;
+}
