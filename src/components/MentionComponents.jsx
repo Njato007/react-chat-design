@@ -5,8 +5,9 @@ import { ContextMenu } from './MessageItem';
 import { Emoji } from 'emoji-picker-react';
 import { useClickAway } from '@uidotdev/usehooks';
 import { useResizeObserver } from '../utils/resizeObserver';
-import { emojifyText, maximizeDisplay, minimize, trimString, useReactionAxes, useScrollAway, useTheme  } from '../utils/tools';
+import { emojifyText, getTag, maximizeDisplay, minimize, profileColor, trimString, useReactionAxes, useScrollAway, useTheme  } from '../utils/tools';
 import moment from '../utils/moment.cust';
+import { getUser, session } from '../utils/func';
 const initialContextMenu = {
     show: false,
     x: 0,
@@ -19,7 +20,6 @@ const suggestions = [
     { id: '2', display: "Njato Tiana" },
     { id: '3', display: "Hello" },
 ];
-const urUser = 'sender'
 
 export const MessageSender = ({ message, onReply, onDelete, onUpdate, onTransfert, theme }) => {
 
@@ -153,8 +153,9 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, onTransfer
     )
 }
 
-export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfert, theme }) => {
+export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfert, theme, user }) => {
 
+    const activeUser = session.user();
     const [isMouseEntered, setIsMouseEntered] = useState(false);
     const [isReacting, setIsReacting] = useState({
         state: false,
@@ -183,7 +184,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfe
         onReact({
             messageId: message.id,
             reaction: {
-                user: urUser,
+                user: activeUser.id,
                 emoji: code,
             },
             isRemoving: isRemoving
@@ -236,14 +237,14 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfe
     }
 
     useEffect(() => {
-        setReactor(message.reactions.find(e => e.user === urUser));
+        setReactor(message.reactions.find(e => e.user === activeUser.id));
         setIsRead(message.isRead);
     }, [message])
 
     return (
         <div id={message.id} receiver='' read={isRead ? 1 : 0} className="flex items-start self-start gap-2 message-item mr-auto my-1" >
-            <div className="rounded-full flex items-center justify-center font-bold text-emerald-500 bg-slate-100 ring-2 ring-gray-200 min-h-[40px] min-w-[40px]">
-                JD
+            <div className={`rounded-full flex items-center justify-center font-bold ${profileColor(getTag(user ? `${user.firstname} ${user.lastname}` : null))} min-h-[40px] min-w-[40px]`}>
+                {getTag(user ? `${user.firstname} ${user.lastname}` : null)}
             </div>
             <div className='w-fit'>
                 <div className="text-xs w-full flex text-slate-600 dark:text-gray-400">
@@ -371,11 +372,12 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
     const [axes, setAxes] = useState({x: 0, y: 0});
     const axesStyle = useReactionAxes(axes.x, axes.y);
     const [show, setShow] = useState(false);
+    const activeUser = session.user();
 
     const fieldRef = useClickAway(() => setShow(false));
 
     const handleClick = () => {
-        onClick({ code: emoji, isRemoving: reactors.some(r => r.user === urUser) })
+        onClick({ code: emoji, isRemoving: reactors.some(r => r.user === activeUser.id) })
     }
     // hover on element
     const handleMouseEnter = (event) => {

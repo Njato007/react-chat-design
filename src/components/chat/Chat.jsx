@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import EmojiPicker, { Emoji, EmojiStyle } from 'emoji-picker-react';
 import { motion, useInView } from 'framer-motion';
 import { MessageSender, MentionInput, MessageReceiver } from '../MentionComponents';
-import { MessagesData, RandomMessages, emojifyText, firstChar, getSelectionStart, groupByDate, insertElement, insertEmojiElement, insertNodeOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, minimize, trimString } from '../../utils/tools';
+import { MessagesData, RandomMessages, emojifyText, firstChar, getChatData, getSelectionStart, getTag, groupByDate, includeReplies, insertElement, insertEmojiElement, insertNodeOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, minimize, profileColor, trimString } from '../../utils/tools';
 import { PiImagesSquare } from 'react-icons/pi'
 import { v1 } from 'uuid'
 import moment from '../../utils/moment.cust';
@@ -20,12 +20,13 @@ import ChatInput from '../ChatInput';
 import ThemeSelector from './ThemeSelector';
 import Typing, { UserIsTyping } from './Typing';
 import Transfert from '../Transfert';
+import { deleteConversation, getConversations, getUserIn, postConversation, putConversation, session } from '../../utils/func';
 
-function Chat({ onCloseChat, chatId }) {
+function Chat({ onCloseChat, chat }) {
 
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const displayChats = groupByDate(messages);
+  const displayChats = groupByDate(includeReplies(messages));
   const [isGettingOldMessage, setIsGettingOldMessage] = useState(false);
   const [lastPreviousMessage, setLastPreviousMessage] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -47,6 +48,32 @@ function Chat({ onCloseChat, chatId }) {
 
   //trigger hooks
   const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [usersInChat, setUsersInChat] = useState([]);
+
+  const [people, setPeople] = useState([]);
+  const activeUser = session.user();
+  const [anotherUser, setAnotherUser] = useState({});
+
+  // fetch message data and users in chat
+  useEffect(() => {
+    if (!chat) return;
+    getConversations(chat.id).then(res => {
+      if (res.status === 200) {
+        setMessages(res.data);
+      }
+    });
+    // get all user in the actual chat
+    getUserIn(chat.users).then(res => {
+      setUsersInChat(res.data)
+      // if chat is not a group
+      if (!chat.isGroup) {
+        const user = res.data.find(user => user.id !== activeUser.id);
+        user.fullName = `${user.firstname} ${user.lastname}`;
+        setAnotherUser(user);
+      }
+    });
+
+  }, [chat]);
 
   const messageInputRef = useRef();
   const uploaderRef = useRef(null);
@@ -57,42 +84,62 @@ function Chat({ onCloseChat, chatId }) {
     const minimized = minimize(messageInputRef.current);
     const trimed = trimString(minimized);
     const message = trimed;
-    console.log(message)
     // reply message
     if (isReplying.state) {
-      setMessages([...messages, {
+      postConversation({
         id: v1(),
-        user: "sender",
-        message: message,
+        chatId: chat.id,
+        sender: activeUser.id,
         replyId: isReplying.data.id,
-        reply: messages.find(m => m.id === isReplying.data.id),
+        message: message,
         reactions: [],
-        seenBy: ["sender"],
-        createdAt: new Date()
-      }]);
+        isRead: true,
+        seenBy: [],
+        createdAt: new Date().toISOString()
+      }).then(res => {
+        if (res.status === 201) {
+          const newMessage = res.data;
+          newMessage.reply = messages.find(message => message.id === res.data.replyId)
+          setMessages([...messages, newMessage]);
+        }
+      })
       // cancel reply
       handleCancelReply();
     }
     // updating message
     else if (isUpdating.state) {
       const messageId = isUpdating.data.id;
-      console.log(messageId)
-      setMessages(prev => prev.map(mess =>
-        mess.id === messageId ?
-          { ...mess, message: message } : mess
-      ));
-      setIsUpdating(initialState);
+      // console.log(messageId)
+      const messageToEdit = messages.find(m => m.id === messageId)
+      putConversation(messageId, {
+        ...messageToEdit, message: message
+      }).then(res => {
+        if (res.data) {
+          setMessages(prev => prev.map(mess =>
+            mess.id === messageId ?
+              { ...mess, message: res.data.message } : mess
+          ));
+          setIsUpdating(initialState);
+        }
+      })
     }
     // send simple message
     else {
-      setMessages([...messages, {
+      // post
+      postConversation({
         id: v1(),
-        user: "sender",
+        chatId: chat.id,
+        sender: activeUser.id,
         message: message,
         reactions: [],
-        seenBy: ["sender"],
-        createdAt: new Date()
-      }]);
+        isRead: true,
+        seenBy: [],
+        createdAt: new Date().toISOString()
+      }).then(res => {
+        if (res.status === 201) {
+          setMessages([...messages, res.data]);
+        }
+      })
     }
     setMessage('');
     messageInputRef.current.innerHTML = '';
@@ -104,33 +151,32 @@ function Chat({ onCloseChat, chatId }) {
   // Message reaction handler
   const handleReaction = (props) => {
     const { messageId, reaction, isRemoving } = props;
-    // Update Message by inserting new Reaction
-    setMessages(prev => prev.map(message => {
-      if (message.id === messageId) {
-        // get reaction
-        const reactions = [...message.reactions];
-        const senderReaction = reactions.find(r => r.user === 'sender');
-        // the sender reaction exists
-        if (senderReaction) {
-          if (isRemoving)
-            // Remove reaction
-            reactions.splice(reactions.indexOf(senderReaction), 1);
-          else
-            // Update reaction
-            reactions.splice(reactions.indexOf(senderReaction), 1, reaction)
-        } else {
-          reactions.push(reaction);
-        }
+    const messageToUpdate = messages.find(m => m.id === messageId);
+    const reactions = [...messageToUpdate.reactions];
+    const senderReaction = reactions.find(r => r.user === activeUser.id);
+    if (senderReaction) {
+      if (isRemoving)
+        // Remove reaction
+        reactions.splice(reactions.indexOf(senderReaction), 1);
+      else
+        // Update reaction
+        reactions.splice(reactions.indexOf(senderReaction), 1, reaction)
+    } else {
+      reactions.push(reaction);
+    }
 
-        const reactedMessage = {
-          ...message,
-          reactions: reactions
-        }
-        return reactedMessage;
+    const reactedMessage = {
+      ...messageToUpdate,
+      reactions: reactions
+    }
+
+    putConversation(messageId, reactedMessage).then(res => {
+      if (res.data) {
+        setMessages(prev => prev.map(message =>
+          message.id === messageId ? reactedMessage : message
+        ));
       }
-
-      return message;
-    }));
+    });
   }
 
   // handle reply message
@@ -163,7 +209,9 @@ function Chat({ onCloseChat, chatId }) {
 
   // delete message 
   const handleDeleteMessage = (msg) => {
-    setMessages(prev => prev.filter(m => m.id !== msg.id));
+    deleteConversation(msg.id).then(res => {
+      setMessages(prev => prev.filter(m => m.id !== msg.id));
+    });
   }
 
   // unread message 
@@ -257,22 +305,11 @@ function Chat({ onCloseChat, chatId }) {
 
     const newMessages = RandomMessages(d);
     // setLastPreviousMessage(messages[0].id);
-    setMessages(prev => [...prev, ...newMessages]);
-    setIsGettingOldMessage(false);
-    setD(prev => prev + 1)
+    // setMessages(prev => [...prev, ...newMessages]);
+    // setIsGettingOldMessage(false);
+    // setD(prev => prev + 1)
   }
 
-  // hooks to fetch message at first render
-  useEffect(() => {
-    if (!chatId) return;
-    setMessages(RandomMessages(chatId + 1));
-    // setMessages(MessagesData);
-  }, [chatId])
-
-  // after adding emoji
-  useEffect(() => {
-    
-  }, []);
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 dark:bg-slate-900"
@@ -291,11 +328,18 @@ function Chat({ onCloseChat, chatId }) {
               <FiArrowLeft className='w-6 h-6' />
             </button>
           </div>
-          <div className="relative w-10 h-10 bg-indigo-100 text-indigo-500 border-2 border-indigo-300 rounded-full flex items-center justify-center">
-            <span className="font-bold text-base">G</span>
+          <div className={`relative w-10 h-10 rounded-full flex items-center justify-center
+            ${profileColor(getTag(chat.isGroup ? chat.name : anotherUser.fullName))}`}>
+            <span className="font-bold text-base">
+              {getTag(chat.isGroup ? chat.name : anotherUser.fullName)}
+            </span>
           </div>
           <div className="text-slate-500 dark:text-gray-300 flex flex-col justify-between">
-            <h1 className='text-sm font-semibold'>Selected ROOM</h1>
+            <h1 className='text-sm font-semibold'>
+              {
+                chat.isGroup ? chat.name : anotherUser.fullName
+              }
+            </h1>
             {/* Show status if not a group room */}
             <div className='flex items-center gap-1 text-xs line-clamp-1'>
               <span className='h-fit w-fit p-1 border-2 bg-green-500 border-white rounded-full'></span>
@@ -358,13 +402,14 @@ function Chat({ onCloseChat, chatId }) {
                   {
                     item.messages.map((msg, i) => (
                       <div className="w-full flex flex-col" key={`message-${msg.id}-${i}`}>
-                        {msg.user === "sender" ?
+                        {msg.sender === activeUser.id ?
                           <MessageSender message={msg}
                             onDelete={handleDeleteMessage}
                             onReply={handleReplyMessage}
                             onUpdate={handleUpdateMessage}
                             onTransfert={() => handleOpenTransfert(msg)}
-                            theme={theme}
+                            // user={usersInChat.find(u => u.id === msg.sender)}
+                            theme={chat.theme}
                           />
                           :
                           <>
@@ -375,7 +420,7 @@ function Chat({ onCloseChat, chatId }) {
                                 initial={{ y: -100, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
                               >
-                                <legend className={`${theme} text-transparent bg-clip-text text-center text-sm px-3 py-2 font-bold`}>Nouveau message</legend>
+                                <legend className={`${chat.theme} text-transparent bg-clip-text text-center text-sm px-3 py-2 font-bold`}>Nouveau message</legend>
                               </motion.fieldset>
                             }
                             <MessageReceiver message={msg}
@@ -383,7 +428,8 @@ function Chat({ onCloseChat, chatId }) {
                               onReply={handleReplyMessage}
                               onUnread={handleUnreadMessageFromHere}
                               onTransfert={() => handleOpenTransfert(msg)}
-                              theme={theme}
+                              theme={chat.theme}
+                              user={usersInChat.find(u => u.id === msg.sender)}
                             />
                           </>
                         }
@@ -470,7 +516,7 @@ function Chat({ onCloseChat, chatId }) {
             }
 
             {/* <TextInput mentionData={mentionData} /> */}
-            <ChatInput value={message} ref={messageInputRef} onChange={setMessage} onSubmit={handleSendMessage} />
+            <ChatInput value={message} ref={messageInputRef} onChange={setMessage} onSubmit={handleSendMessage} people={people} />
 
             {
               isUpdating.state &&
@@ -482,7 +528,7 @@ function Chat({ onCloseChat, chatId }) {
               // message.trim().length > 0 &&
               <motion.button disabled={message.trim().length === -1}
                 whileHover={{ scale: 1.3 }}
-                className={`rounded-full ${theme} font-bold text-transparent bg-clip-text dark:hover:bg-gray-700 p-2 disabled:cursor-not-allowed`}
+                className={`rounded-full ${chat.theme} font-bold text-transparent bg-clip-text dark:hover:bg-gray-700 p-2 disabled:cursor-not-allowed`}
                 onClick={handleSendMessage} >
                 {/* <BsFillSendFill className='h-5 w-5' /> */}
                 <i aria-hidden className='fa fa-paper-plane text-xl' />

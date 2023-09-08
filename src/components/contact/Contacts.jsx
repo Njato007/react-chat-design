@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BiConversation, BiSearch } from 'react-icons/bi';
 import { RxMagnifyingGlass } from 'react-icons/rx';
 import ChatItem from '../chat/ChatItem';
 import ContactItem from './ContactItem';
+import { RandomUsers } from '../../utils/tools';
 
 const Contacts = ({ visible, onOpenChat }) => {
     const initialSearch = {
@@ -12,11 +13,16 @@ const Contacts = ({ visible, onOpenChat }) => {
     }
     const [search, setSearch] = useState(initialSearch);
     const [activeChatId, setActiveChatId] = useState(null);
+    const [contacts, setContacts] = useState([]);
 
     const handleOpenChat = (id) => {
         setActiveChatId(id);
         onOpenChat({state: true, chatId: id})
     }
+
+    useEffect(() => {
+        setContacts(RandomUsers());
+    }, []);
 
     if (!visible) return <></>;
 
@@ -48,9 +54,10 @@ const Contacts = ({ visible, onOpenChat }) => {
                     </fieldset>
                     <div className="flex flex-col gap-1 pb-2">
                         {
-                            Array.from({ length: 10 }, (_, i) => (
+                            contacts.map((contact, i) => (
                                 <ContactItem
                                     key={i}
+                                    data={contact}
                                     contactId={`contact-${i}`}
                                     openChat={() => handleOpenChat(i)}
                                 />

@@ -41,7 +41,7 @@ export const useReactionAxes = (x, y) => {
 }
 
 
-export const orderByDateFunc = (a, b) => a.createdAt - b.createdAt;
+export const orderByDateFunc = (a, b) => new Date(b.date) - new Date(a.date);
 
 // Function to scroll to the bottom of the container
 export const scrollToBottom = (containerRef) => {
@@ -51,10 +51,15 @@ export const scrollToBottom = (containerRef) => {
   }
 };
 
+export const includeReplies = (msgs) => {
+  return msgs.map(m => m.replyId ?
+      ({...m, reply: msgs.find(ms => ms.id === m.replyId)}) : m)
+}
+
 export const groupByDate = (data) => {
   // this gives an object with dates as keys
   const groups = data.reduce((groups, message) => {
-    const time = message.createdAt.toISOString()
+    const time = new Date(message.createdAt).toISOString()
     const date = time.split('T')[0];
     if (!groups[date]) {
       groups[date] = [];
@@ -70,7 +75,8 @@ export const groupByDate = (data) => {
       messages: groups[date]
     };
   });
-
+  groupArrays.sort(orderByDateFunc);
+  
   return groupArrays;
 }
 
@@ -124,9 +130,37 @@ export const RandomMessages = (d) => Array.from({length: 10}, (_, index) => {
     reactions: [],
     createdAt: addDays(new Date(), 0 - d),
     isRead: true,
+    isGroup: false,
     seenBy: ["receiver"]
   })
 });
+
+export const RandomUsers = () => {
+  const names = [ 'Jimmy', 'Foggy', 'Soap', 'Yury', 'Eva', 'Clark', 'Johnson', 'Milles', 'Deepanchu' ];
+  return names.map(name => ({
+    id: v1(),
+    firstname: name,
+    lastname: name.charAt(name.length - 1).toUpperCase() + '.',
+    image: ''
+  }))
+}
+const users = RandomUsers();
+
+export const RandomConversations = () => {
+  return users.map(user => ({
+    id: v1(),
+    name: `${user.firstname} ${user.lastname}`,
+    isGroup: false,
+    users: [user.id],
+    lastMessage: '',
+    lastUpdate: addDays(new Date(), -1)
+  }))
+}
+
+export const getChatData = {
+  conversations: RandomConversations(),
+  users: users
+} 
 
 
 export function useScrollAway(ref, cb) {
@@ -364,7 +398,8 @@ export const minimize = (html) => {
   for (let people of mentions) {
     const mention = people.firstElementChild;
     const content = mention.textContent;
-    const textNode = document.createTextNode(`{{${content}}}`);
+    const id = mention.id;
+    const textNode = document.createTextNode(`{{${content}_${id}}}`);
     people.before(textNode)
     people.remove();
   }
@@ -406,7 +441,10 @@ export const maximizeDisplay = (text, editable) => {
   // check mention
   const regexTag =/\{\{@([^:]+)\}\}/
   while ((matches = regexTag.exec(newText)) !== null) {
-    const tag = <span id={matches[1]} contentEditable={false} className="mentioned_people">@{matches[1]}</span>
+    const match = matches[1];
+    const content = match.split('_')[0];
+    const id = match.split('_')[1];
+    const tag = <span id={id} contentEditable={false} className="mentioned_people">@{content}</span>
     const tagText = ReactDOMServer.renderToString(tag);
     newText = newText.replace(matches[0], tagText);
   }
@@ -467,4 +505,36 @@ export const emojifyText = (text = '') => {
   const splits = text.split(' ');
   const emojified = splits.map(split => EmojiSymbols[split.toLowerCase()] ?? split);
   return emojified.join(' ');
+}
+
+
+export const sortByLastUpdate = (array) => array.sort((a, b) => new Date(b.lastUpdate) - new Date(a.lastUpdate));
+
+
+export const profileColor = (char = '') => {
+  const charCode1 = char.charCodeAt(0);
+  const charCode2 = char.charCodeAt(1);
+
+  const colors = [
+    'prof_red',
+    'prof_blue',
+    'prof_sky',
+    'prof_green',
+    'prof_indigo',
+    'prof_orange',
+    'prof_purple',
+    'prof_violet',
+    'prof_yellow',
+    'prof_gray',
+  ]
+
+  const colorIndex = (charCode1 * (charCode2 || 1)) % colors.length;
+  return colors[colorIndex];
+}
+
+export const getTag = (fullname) => {
+  if (!fullname) return '';
+  const splited = fullname.split(' ');
+  const tag = `${splited[0].charAt(0)}${splited[1] ? splited[1].charAt(0) : ''}`;
+  return tag;
 }
