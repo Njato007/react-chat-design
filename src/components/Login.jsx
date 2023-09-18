@@ -3,12 +3,13 @@ import { FaUser, FaLock } from 'react-icons/fa'
 import ThemSwitcher from './ThemSwitcher'
 import { getUsers, signIn } from '../utils/func';
 import { useNavigate } from 'react-router-dom';
+import useSession from '../hooks/useSession';
 
 const Login = () => {
     const navigate = useNavigate()
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-
+    const { setSession } = useSession();
     const handleSubmit = (e) => {
         e.preventDefault();
         signIn({
@@ -16,14 +17,13 @@ const Login = () => {
             password
         }).then(res => {
             if (res.status === 200) {
-                // check result
-                if (res.data.length === 0) {
-                    console.log('Authentification invalid!')
-                } else {
-                    const user = res.data[0];
-                    localStorage.setItem('_user', JSON.stringify(user));
-                    return navigate('/messenger');
-                }
+                const user = res.data;
+                console.log(user)
+                // set session in localstorage with the access token
+                setSession(user);
+                return navigate('/messenger');
+            } else {
+                alert(res.message)
             }
         }).catch(err => console.log(err));
     }

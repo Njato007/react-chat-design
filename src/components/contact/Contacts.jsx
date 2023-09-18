@@ -5,6 +5,8 @@ import { RxMagnifyingGlass } from 'react-icons/rx';
 import ChatItem from '../chat/ChatItem';
 import ContactItem from './ContactItem';
 import { RandomUsers } from '../../utils/tools';
+import { getUsers } from '../../utils/func';
+import useSession from '../../hooks/useSession';
 
 const Contacts = ({ visible, onOpenChat }) => {
     const initialSearch = {
@@ -14,6 +16,7 @@ const Contacts = ({ visible, onOpenChat }) => {
     const [search, setSearch] = useState(initialSearch);
     const [activeChatId, setActiveChatId] = useState(null);
     const [contacts, setContacts] = useState([]);
+    const { session } = useSession();
 
     const handleOpenChat = (id) => {
         setActiveChatId(id);
@@ -21,8 +24,15 @@ const Contacts = ({ visible, onOpenChat }) => {
     }
 
     useEffect(() => {
-        setContacts(RandomUsers());
-    }, []);
+        // setContacts(RandomUsers());
+        if (session) {
+            getUsers(session.token).then(res => {
+                if (res.status === 200) {
+                    setContacts(res.data);
+                }
+            })
+        }
+    }, [session]);
 
     if (!visible) return <></>;
 

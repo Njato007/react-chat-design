@@ -78,7 +78,9 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, onTransfer
         onUpdate(message);
     }
 
-    
+    useEffect(() => {
+        
+    }, [message]);
 
     return (
         <div id={message.id} className="flex self-end message-item ml-auto my-1">
@@ -123,15 +125,18 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, onTransfer
                     </div>
                 }
                 {/* Seen by users... */}
-                <motion.div className={`text-slate-400 text-xxs py-1`}
-                    animate={{
-                        y: showViewers ? (message.reactions.length > 0 ? -16 : 0) : -5,
-                        display: showViewers ? 'block' : 'none',
-                        zIndex: showViewers ? 1 : -10
-                    }}
-                >
-                    <b>Vu</b> par {message.seenBy.join(', ')}
-                </motion.div>
+                {
+                    message.seenBy.length > 0 &&
+                    <motion.div className={`text-slate-400 text-xxs py-1`}
+                        animate={{
+                            y: showViewers ? (message.reactions.length > 0 ? -16 : 0) : -5,
+                            display: showViewers ? 'block' : 'none',
+                            zIndex: showViewers ? 1 : -10
+                        }}
+                    >
+                        <b>Vu</b> par {message.seenBy.join(', ')}
+                    </motion.div>
+                }
             </div>
             <button type='button' className='h-fit pl-1 rounded' onClick={handleContextMenu}>
                 <BsThreeDotsVertical className='text-slate-500' />
@@ -153,7 +158,7 @@ export const MessageSender = ({ message, onReply, onDelete, onUpdate, onTransfer
     )
 }
 
-export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfert, theme, user }) => {
+export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfert, theme, user, users }) => {
 
     const activeUser = session.user();
     const [isMouseEntered, setIsMouseEntered] = useState(false);
@@ -308,7 +313,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfe
                     message.reactions.length > 0 && 
                     <div ref={reaction_Ref} style={{ maxWidth: `${reactionWidth}px` }}
                         className={`-translate-y-4 ${reactionWidth === 0 && 'hidden'} relative z-40`}>
-                        <ReactionEmojiList reactions={message.reactions} onClickReaction={handleClickReaction} />
+                        <ReactionEmojiList reactions={message.reactions} onClickReaction={handleClickReaction} users={users}/>
                     </div>
                 }
                 {/* Seen by users... */}
@@ -339,7 +344,7 @@ export const MessageReceiver = ({ message, onReact, onReply, onUnread, onTransfe
 }
 
 // List of users reactions
-export const ReactionEmojiList = ({reactions, onClickReaction}) => {
+export const ReactionEmojiList = ({reactions, onClickReaction, users}) => {
 
     const [dummyReactions, setdummyReactions] = useState([]);
 
@@ -349,12 +354,16 @@ export const ReactionEmojiList = ({reactions, onClickReaction}) => {
         const results = [];
         keys.map(key => {
             const reactors = reactions.filter(reaction => reaction.emoji === key);
+            const reactorsWithUserInfos = reactors.map(reactor => {
+                return ({...reactor, user: users.find(user => user.id === reactor.user)})
+            });
             results.push({
                 emoji: key,
-                reactors: reactors
+                reactors: reactorsWithUserInfos
             })
         });
         setdummyReactions(results);
+        console.log(results.reactors)
     }, [reactions]);
 
     if (reactions.length === 0) return null;
@@ -377,7 +386,7 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
     const fieldRef = useClickAway(() => setShow(false));
 
     const handleClick = () => {
-        onClick({ code: emoji, isRemoving: reactors.some(r => r.user === activeUser.id) })
+        onClick({ code: emoji, isRemoving: reactors.some(r => r.user.id === activeUser.id) })
     }
     // hover on element
     const handleMouseEnter = (event) => {
@@ -391,6 +400,7 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
     const handleMouseLeave = (event) => {
         setShow(false);
     }
+    
 
     return (
         <motion.div
@@ -402,27 +412,40 @@ const ReactionItem = ({ emoji, reactors, onClick }) => {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
+            
             <Emoji unified={emoji} emojiStyle='google' size={22}/>
             {
                 reactors.length > 1 &&
                 <span className='text-sm text-slate-700 px-1'>{reactors.length}</span>
             }
                 
-            <div className={`absolute whitespace-nowrap z-[100000] bottom-10 translate-x-[-50%] left-[50%] ${show ? 'block' : 'hidden'}`}
+            <div className={`absolute whitespace-nowrap shadow z-[10000] bottom-10 translate-x-[-50%] left-[50%] ${show ? 'block' : 'hidden'}`}
                 ref={fieldRef}
                 style={axesStyle()}
             >
-                <div className="flex flex-col w-full bg-white dark:bg-gray-800 p-2 border-2 border-emerald-400 dark:border-gray-700 shadow-sm rounded-lg">
+                <div className="relative">
                     {
-                        reactors.map((reactor, idx) => (
-                            <div key={idx} className="flex items-center p-1 gap-1">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 bg-white">
-                                    <span className="font-bold text-emerald-600">{reactor.user.charAt(0)}</span>
-                                </div>
-                                <p className='text-sm text-black dark:text-white'>{reactor.user}</p>
-                            </div>
-                        ))
+                        axesStyle().isTop ? 
+                        <div className='absolute translate-x-[-50%] left-[50%] h-4 w-4 bg-white dark:bg-gray-800 border-l-2 border-t-2 border-gray-200 dark:border-gray-700 rotate-45 !z-[100000] top-[-7px]' />
+                        :
+                        <div className='absolute translate-x-[-50%] left-[50%] h-4 w-4 bg-white dark:bg-gray-800 border-r-2 border-b-2 border-gray-200 dark:border-gray-700 rotate-45 !z-[100000] bottom-[-7px]' />
                     }
+                    <div className="flex flex-col gap-2 w-full bg-white dark:bg-gray-800 p-0 border-2 border-gray-200 dark:border-gray-700 shadow-sm rounded-lg max-h-[200px] overflow-y-auto">
+                        {
+                            reactors.map((reactor, idx) => (
+                                reactor.user ?
+                                <div key={idx} className="flex items-center p-3 gap-2 cursor:pointer">
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full ${profileColor(getTag(`${reactor.user.firstname} ${reactor.user.lastname}`))}`}>
+                                        <span className="font-semibold text-sm">
+                                            {getTag(`${reactor.user.firstname} ${reactor.user.lastname}`)}
+                                        </span>
+                                    </div>
+                                    <p className='text-sm text-black dark:text-white'>{`${reactor.user.firstname} ${reactor.user.lastname}`}</p>
+                                </div>
+                                : <div key={idx}/>
+                            ))
+                        }
+                    </div>
                 </div>
             </div>
         </motion.div>

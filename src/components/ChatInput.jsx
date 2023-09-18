@@ -8,7 +8,7 @@ import ContactItem from './contact/ContactItem';
 const ChatInput = React.forwardRef((props, ref) => {
     const [showMentionComp, setShowMentionComp] = useState(false);
     const mentionList = ['someone', 'anyone', 'everyone'];
-    const [mentions, setMentions] = useState(props.people);
+    const [mentions, setMentions] = useState([]);
     const [value, setValue] = useState('');
     const [text, setText] = useState(props.value);
     const [isFocus, setIsFocus] = useState(false);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessagesData, profileColor } from './../utils/tools';
+import { MessagesData, getTag, profileColor } from './../utils/tools';
 import Chat from './chat/Chat';
 import { BsBell } from 'react-icons/bs';
 import { GiConversation } from 'react-icons/gi';
@@ -10,12 +10,14 @@ import Contacts from './contact/Contacts';
 import ThemSwitcher from './ThemSwitcher';
 import { BiCog } from 'react-icons/bi';
 import { useNavigate } from 'react-router-dom';
+import useSession from '../hooks/useSession';
 
 function Messenger () {
   const [messages, setMessages] = useState([]);
   const [activeUser, setActiveUser] = useState({});
   const [userTag, setUserTag] = useState('');
   const navigate = useNavigate();
+  const {session} = useSession()
   const initialOpenChat = {
     state: false,
     chat: null
@@ -42,17 +44,13 @@ function Messenger () {
   useEffect(() => {
     // setMessages(RandomMessages(0));
     // setMessages(MessagesData);
-    const userData = localStorage.getItem('_user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      setActiveUser(user);
-      if (user) {
-        setUserTag(`${user.firstname.charAt(0)}${user.lastname.charAt(0)}`);
-      }
-    } else {
-      navigate('/');
+    if (session) {
+      setActiveUser(session);
+      setUserTag(getTag(session.name));
     }
-  }, []);
+  }, [session]);
+
+  if (!session) return;
 
 
   return (
@@ -71,7 +69,7 @@ function Messenger () {
               </div>
               <div className="flex flex-col justify-between">
                 <div className="flex items-center gap-1">
-                  <h1 className='text-indigo-950 dark:text-indigo-400 font-bold'>{activeUser?.firstname} {activeUser?.lastname}</h1>
+                  <h1 className='text-indigo-950 dark:text-indigo-400 font-bold'>{activeUser?.name}</h1>
                   {/* Open user info */}
                   <button className='p-1 text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white'>
                     <BiCog className='w-5 h-5' />

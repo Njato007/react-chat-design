@@ -1,9 +1,14 @@
 import axios from 'axios';
+import Axios from '../api/axios';
 
-const base_url = 'http://localhost:4000'
+const base_url = 'http://localhost:5000'
 
-export const getUsers = async () => {
-    const res = await axios.get(`${base_url}/users`);
+export const getUsers = async (token, q = null, signal = undefined) => {
+    const query = q ? `?search=${q}` : '';
+    const res = await axios.get(`${base_url}/api/user${query}`, {
+        headers: { Authorization: `Bearer ${token}`},
+        signal: signal
+    });
     return res;
 }
 
@@ -18,14 +23,29 @@ export const getUserIn = async (arrayOfId) => {
     return res;
 }
 
+// LOGIN
 export const signIn = async (auth) => {
-    const res = await axios.get(`${base_url}/users?username=${auth.username}&password=${auth.password}`);
+    // url:: api/user/login
+    const res = await axios.post(`${base_url}/api/user/login`, {
+        email: auth.username,
+        password: auth.password
+    });
     return res;
 }
 
 // CHAT
-export const getChats = async () => {
-    const res = await axios.get(`${base_url}/chats`);
+export const getChats = async (token) => {
+    const res = await axios.get(`${base_url}/api/chat`, {
+        headers: { Authorization: `Bearer ${token}`}
+    });
+    return res;
+}
+export const createChat = async (token, data) => {
+    const res = await axios.post(`${base_url}/api/chat/group`, data, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+    });
     return res;
 }
 

@@ -4,6 +4,8 @@ import ContactItem from './contact/ContactItem'
 import { MdClose, MdOutlineMobileScreenShare } from 'react-icons/md'
 import { AiOutlineCheckSquare, AiOutlineUserAdd, AiOutlineUserDelete, AiOutlineUsergroupAdd } from 'react-icons/ai'
 import { RandomUsers, getChatData } from '../utils/tools'
+import useSession from '../hooks/useSession'
+import { getUsers } from '../utils/func'
 
 const NewGroup = ({onClose, onCreate}) => {
 
@@ -12,13 +14,14 @@ const NewGroup = ({onClose, onCreate}) => {
     const [search, setSearch] = useState('');
     const [members, setMembers] = useState([]);
     const [contacts, setContacts] = useState([]);
+    const { session } = useSession();
 
-    const handleAddMember = (memberId) => {
-        setMembers(prev => [...prev, memberId]);
+    const handleAddMember = (member) => {
+        setMembers(prev => [...prev, member]);
     }
 
-    const handleRemoveMember = (memberId) => {
-        setMembers(prev => prev.filter(member => member !== memberId));
+    const handleRemoveMember = (member) => {
+        setMembers(prev => prev.filter(m => m._id !== member._id));
     }
 
     const handleCreateGroup = () => {
@@ -29,9 +32,20 @@ const NewGroup = ({onClose, onCreate}) => {
         onCreate && onCreate(data);
     }
 
+    const filter = (contacts) => {
+        const key = search.toLowerCase();
+        return contacts.filter(contact => contact.email.toLowerCase().match(key) || contact.name.toLowerCase().match(key));
+    }
+
     useEffect(() => {
-        setContacts(getChatData.users)
-    }, []);
+        if (session) {
+            getUsers(session.token).then(res => {
+                if (res.status === 200) {
+                    setContacts(res.data);
+                }
+            })
+        }
+    }, [session]);
 
     return (
         <div className='w-full max-w-xl bg-white dark:bg-slate-800 rounded-lg p-4 shadow-md'>
@@ -78,9 +92,9 @@ const NewGroup = ({onClose, onCreate}) => {
                         </div>
                         <div className="flex flex-col overflow-y-auto h-fit max-h-[230px] py-1">
                             {
-                                contacts.map((contact, i) => (
-                                    <div key={contact.id}
-                                        className='flex items-center gap-0 pr-3 hover:bg-indigo-200 dark:hover:bg-sky-950'
+                                filter(contacts).map((contact, i) => (
+                                    <div key={contact._id}
+                                        className='flex items-center gap-0 pr-3 rounded hover:bg-indigo-200 dark:hover:bg-sky-950'
                                     >
                                         {/* <div className={`text-right ${members.indexOf(id) < 0 && 'opacity-0'}`}>
                                             <AiOutlineCheckSquare className={`w-6 h-6 text-emerald-500`}/>
@@ -88,18 +102,18 @@ const NewGroup = ({onClose, onCreate}) => {
 
                                         <ContactItem data={contact} />
                                         {
-                                            members.indexOf(contact.id) === -1 ?
+                                            members.indexOf(contact) === -1 ?
                                             <button
                                                 className='ml-auto flex items-center gap-2 text-xs font-semibold bg-indigo-600 dark:bg-indigo-900 text-gray-200 dark:text-white p-2 rounded-lg'
-                                                onClick={() => handleAddMember(contact.id)}
+                                                onClick={() => handleAddMember(contact)}
                                             >
-                                                <AiOutlineUserAdd  className='w-6 h-6'/>
+                                                <AiOutlineUserAdd className='w-6 h-6'/>
                                             </button> :
                                             <button
                                                 className='ml-auto flex items-center gap-2 text-xs font-semibold bg-rose-600 dark:bg-rose-900 text-gray-200 dark:text-white p-2 rounded-lg'
-                                                onClick={() => handleRemoveMember(contact.id)}
+                                                onClick={() => handleRemoveMember(contact)}
                                             >
-                                                <AiOutlineUserDelete  className='w-6 h-6'/>
+                                                <AiOutlineUserDelete className='w-6 h-6'/>
                                             </button>
                                         }
                                     </div>
