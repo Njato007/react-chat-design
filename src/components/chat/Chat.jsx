@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import EmojiPicker, { Emoji, EmojiStyle } from 'emoji-picker-react';
 import { motion, useInView } from 'framer-motion';
 import { MessageSender, MentionInput, MessageReceiver } from '../MentionComponents';
-import { MessagesData, RandomMessages, emojifyText, firstChar, getChatData, getSelectionStart, getTag, groupByDate, includeReplies, insertElement, insertEmojiElement, insertNodeOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, minimize, profileColor, trimString } from '../../utils/tools';
+import { MessagesData, RandomMessages, emojifyText, firstChar, getChatData, getSelectionStart, getTag, groupByDate, groupMessages, includeReplies, insertElement, insertEmojiElement, insertNodeOverSelection, isFileSizeGreaterThan5MB, maximizeDisplay, minimize, profileColor, trimString } from '../../utils/tools';
 import { PiImagesSquare } from 'react-icons/pi'
 import { v1 } from 'uuid'
 import moment from '../../utils/moment.cust';
@@ -53,25 +53,28 @@ function Chat({ onCloseChat, chat }) {
   const [people, setPeople] = useState([]);
   const activeUser = session.user();
   const [anotherUser, setAnotherUser] = useState({});
+  const groupedMessage = groupMessages(messages);
 
   // fetch message data and users in chat
   useEffect(() => {
     if (!chat) return;
-    getConversations(chat.id).then(res => {
-      if (res.status === 200) {
-        setMessages(res.data);
-      }
-    });
+    // getConversations(chat.id).then(res => {
+    //   if (res.status === 200) {
+    //     setMessages(res.data);
+    //   }
+    // });
+    
     // get all user in the actual chat
-    getUserIn(chat.users).then(res => {
-      setUsersInChat(res.data)
-      // if chat is not a group
-      if (!chat.isGroup) {
-        const user = res.data.find(user => user.id !== activeUser.id);
-        user.fullName = `${user.firstname} ${user.lastname}`;
-        setAnotherUser(user);
-      }
-    });
+    // getUserIn(chat.users).then(res => {
+    //   setUsersInChat(res.data)
+    //   setPeople(res.data.filter(user => user.id !== activeUser.id));
+    //   // if chat is not a group
+    //   if (!chat.isGroup) {
+    //     const user = res.data.find(user => user.id !== activeUser.id);
+    //     user.fullName = `${user.firstname} ${user.lastname}`;
+    //     setAnotherUser(user);
+    //   }
+    // });
 
   }, [chat]);
 
@@ -430,6 +433,7 @@ function Chat({ onCloseChat, chat }) {
                               onTransfert={() => handleOpenTransfert(msg)}
                               theme={chat.theme}
                               user={usersInChat.find(u => u.id === msg.sender)}
+                              users={usersInChat}
                             />
                           </>
                         }

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import React, { useEffect, useState } from 'react'
 import { ContextMenuChatItem } from '../MessageItem'
-import { getTag, profileColor } from '../../utils/tools';
+import { emojifyText, getTag, maximizeDisplay, profileColor } from '../../utils/tools';
 import { getLastConversation, getUser } from '../../utils/func';
 
 const ChatItem = ({ i, data, isActive, onClose, activeUser }) => {
@@ -46,26 +46,28 @@ const ChatItem = ({ i, data, isActive, onClose, activeUser }) => {
 
     useEffect(() => {
         if (data) {
+            console.log(data)
             // Split space and get first char of splited to display
-            if (!data.isGroup) {
+            if (!data.isGroupChat) {
                 // get the id of the another user
-                const anotherUserId = data.users.filter(userId => userId !== activeUser.id)[0];
-                getUser(anotherUserId).then(res => {
-                    if (res.status === 200) {
-                        const user = res.data;
-                        setTag(`${user.firstname.charAt(0)}${user.lastname.charAt(0)}`);
-                        setUserName(`${user.firstname} ${user.lastname}`)
-                    }
-                })
+                // const anotherUserId = data.users.filter(userId => userId !== activeUser.id)[0];
+                // getUser(anotherUserId).then(res => {
+                //     if (res.status === 200) {
+                //         const user = res.data;
+                //         setTag(`${user.firstname.charAt(0)}${user.lastname.charAt(0)}`);
+                //         setUserName(`${user.firstname} ${user.lastname}`)
+                //     }
+                // })
             } else {
-                setTag(getTag(data.name));
+                console.log('not ', data)
+                setTag(getTag(data.chatName));
             }
             // set last message
-            getLastConversation(data.id).then(res => {
-                if (res.status === 200 && res.data.length > 0) {
-                    setLastMessage(res.data[0].message);
-                }
-            })
+            // getLastConversation(data.id).then(res => {
+            //     if (res.status === 200 && res.data.length > 0) {
+            //         setLastMessage(res.data[0].message);
+            //     }
+            // })
         }
     }, [data])
 
@@ -83,14 +85,14 @@ const ChatItem = ({ i, data, isActive, onClose, activeUser }) => {
                     </span>
                     {/* is not a group */}
                     {
-                        data.isGroup ?
-                            <span className='absolute h-3 w-3 border-2 bg-pink-500 border-white rounded-full -bottom-0 -right-1'></span>
+                        data.isGroupChat ?
+                            <span className='absolute h-[14px] w-[14px] border-2 bg-pink-500 border-white rounded-full -bottom-0 -right-1'></span>
                         :
-                            <span className='absolute h-3 w-3 border-2 bg-green-500 border-white rounded-full -bottom-0 -right-1'></span>
+                            <span className='absolute h-[14px] w-[14px] border-2 bg-green-500 border-white rounded-full -bottom-0 -right-1'></span>
                     }
                 </div>
                 <div className="flex flex-col justify-between gap-1">
-                    <h1 className='text-sm font-bold text-gray-600 dark:text-gray-300 line-clamp-1'>{data.isGroup ? data?.name : userName}</h1>
+                    <h1 className='text-sm font-bold text-gray-600 dark:text-gray-300 line-clamp-1'>{data.isGroupChat ? data.chatName : userName}</h1>
                     <div className="flex gap-1">
                         {
                             i === 4 &&
@@ -98,9 +100,9 @@ const ChatItem = ({ i, data, isActive, onClose, activeUser }) => {
                                 <span className='h-fit w-fit px-2 py-0 text-xxs text-white bg-rose-400 rounded-full'>2</span>
                             </div>
                         }
-                        <p className={`text-gray-700 dark:text-gray-300 text-sm line-clamp-1 ${i === 4 && 'font-bold'}`}>
-                            {lastMessage}
-                        </p>
+                        <p className={`text-gray-700 dark:text-gray-300 text-sm line-clamp-1 ${i === 4 && 'font-bold'}`}
+                            dangerouslySetInnerHTML={{__html: maximizeDisplay(emojifyText(lastMessage))}}
+                        />
                     </div>
                 </div>
             </div>

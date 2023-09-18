@@ -36,7 +36,7 @@ export const useAxesStyle = (x, y) => {
 export const useReactionAxes = (x, y) => {
     return useCallback(() => {
         const vh = window.innerHeight;
-        return (y > vh - 500) ? { bottom: '40px' } : { top: '40px' };
+        return (y > vh - 500) ? { bottom: '35px', isTop: false } : { top: '35px', isTop: true };
     }, [x, y]);
 }
 
@@ -76,8 +76,52 @@ export const groupByDate = (data) => {
     };
   });
   groupArrays.sort(orderByDateFunc);
+  console.log(groupArrays)
   
   return groupArrays;
+}
+
+
+// Function to group messages by date and time
+export const groupMessages = (messages) => {
+  const grouped = messages.reduce((result, message) => {
+    const messageDate = new Date(message.createdAt);
+    const dateKey = messageDate.toISOString().split('T')[0];
+    const timeKey = messageDate.toTimeString().substring(0, 5); // Extract HH:MM
+
+    // Create a new date group if it doesn't exist
+    if (!result[dateKey]) {
+      result[dateKey] = {};
+    }
+
+    // Create a new time group if it doesn't exist
+    if (!result[dateKey][timeKey]) {
+      result[dateKey][timeKey] = [];
+    }
+
+    // Add the message to the appropriate time group
+    result[dateKey][timeKey].push(message);
+
+    return result;
+  }, {});
+
+  const result = [];
+  for (const dateKey of Object.keys(grouped)) {
+    const obj = {
+      date: dateKey,
+      time: []
+    }
+    for (const timeKey of Object.keys(grouped[dateKey])) {
+      obj.time.push({
+        time: timeKey,
+        messages: grouped[dateKey][timeKey] 
+      })
+    }
+    result.push(obj)
+  }
+  console.log(result)
+
+  return grouped;
 }
 
 export const isFileSizeGreaterThan5MB = (file) => {
@@ -439,7 +483,7 @@ export const maximizeDisplay = (text, editable) => {
   }
 
   // check mention
-  const regexTag =/\{\{@([^:]+)\}\}/
+  const regexTag =/\{\{@([^}\s]+)\}\}/
   while ((matches = regexTag.exec(newText)) !== null) {
     const match = matches[1];
     const content = match.split('_')[0];
